@@ -9,7 +9,7 @@
 * [Example Usage](#example-usage)
 * [Video Tutorials](#video-tutorials)
 * [Complete list of available functions](#available-functions)
-* [License](#license)
+* [License](#license) 
 
 ## Introduction
 In this project, we present a technique employing ZeroMQ (an Open Source, Asynchronous Messaging Library and Concurrency Framework) for building a basic – but easily extensible – high performance bridge between external (non-MQL) programming languages and MetaTrader 4.
