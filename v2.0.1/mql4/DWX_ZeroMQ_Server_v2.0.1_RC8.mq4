@@ -89,7 +89,6 @@ int OnInit()
    pullSocket.bind(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PUSH_PORT));
    
    pullSocket.setReceiveHighWaterMark(1);
-   
    pullSocket.setLinger(0);
    
    if (Publish_MarketData == TRUE)
