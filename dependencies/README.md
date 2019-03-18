@@ -1,4 +1,4 @@
-This project incorporates code from Ding Li (GitHub: https://github.com/dingmaotu), who has kindly licensed his work under the Apache 2.0 license.
+This project incorporates functionality authored by Ding Li (GitHub: https://github.com/dingmaotu), who has kindly licensed his work under the Apache 2.0 license.
 
 We acknowledge copyright as per the terms of the license, the following repositories serving as mandatory dependencies for this project:
 
