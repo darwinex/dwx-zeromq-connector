@@ -2,7 +2,7 @@ NOTE: Repository is pending maintenance. Please refer to https://github.com/darw
 
 # DWX ZeroMQ Connector  { Python 3 to MetaTrader 4 }
 
-# Latest version: 2.0.1 [(here)](https://github.com/darwinex/DarwinexLabs/tree/master/tools/dwx_zeromq_connector/v2.0.1)
+# Latest version: 2.0.1 [(here)](https://github.com/darwinex/dwx-zeromq-connector/v2.0.1)
 
 ## Table of Contents
 * [Introduction](#introduction)
@@ -34,7 +34,7 @@ In this project, we present a technique employing ZeroMQ (an Open Source, Asynch
 * Permit both Server and Clients to communicate with each other on-demand.
 
 **Infographic: ZeroMQ-Enabled Distributed Trading Infrastructure (with MetaTrader 4)**
-![DWX ZMQ Infographic 1](v2.0.1/resources/images/dwx-zeromq-infographic-1.png)
+![DWX ZMQ Infographic 1](resources/images/dwx-zeromq-infographic-1.png)
 
 **Why ZeroMQ?**
 
@@ -75,7 +75,7 @@ For your convenience, files from the last three items above have been included i
 1. Open any new chart, e.g. EUR/USD M, then drag and drop **DWX_ZeroMQ_Server_vX.Y.Z_RCx**.
 1. Switch to the EA's Inputs tab and customize values as necessary:
 
-    ![EA Inputs](v2.0.1/resources/images/expert-inputs.png)
+    ![EA Inputs](resources/images/expert-inputs.png)
 1. Note: Setting **Publish_MarketData** to **True** will cause MetaTrader 4 to begin publishing BID/ASK tick data in real-time for all symbols specified in the array **Publish_Symbols** contained in the .mq4 script. 
 1. Simply modify the Publish_Symbols[] aarray's contents to add/remove required symbols as necessary and re-compile. 
 1. The default list of symbols is:
@@ -85,9 +85,9 @@ For your convenience, files from the last three items above have been included i
 	   "EURUSD","GBPUSD","USDJPY","USDCAD","AUDUSD","NZDUSD","USDCHF"
 	};
 	```
-	![MetaTrader Publishing Tick Data 1](v2.0.1/resources/images/ZeroMQ_Server_Publishing_Symbol_Data.gif)
+	![MetaTrader Publishing Tick Data 1](resources/images/ZeroMQ_Server_Publishing_Symbol_Data.gif)
 	
-	![MetaTrader Publishing Tick Data 2](v2.0.1/resources/images/InAction_ZeroMQ_Server_Publishing_Symbol_Data.gif)
+	![MetaTrader Publishing Tick Data 2](resources/images/InAction_ZeroMQ_Server_Publishing_Symbol_Data.gif)
 
 ## Example Usage
 
