@@ -67,9 +67,9 @@ _1. https://github.com/dingmaotu/mql4-lib_
 
 _Thank you Ding for your amazing open source contribution to this space!_
 
-_Sincerely,<br>
-The Darwinex Labs Team<br>
-www.darwinex.com
+_Sincerely,_<br>
+_The Darwinex Labs Team_<br>
+_www.darwinex.com_
 
 
 ### Steps:
