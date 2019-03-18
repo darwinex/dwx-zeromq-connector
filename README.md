@@ -78,7 +78,7 @@ _www.darwinex.com_
 1. Copy the contents of **mql-zmq-master/Include/Mql** and **mql-zmq-master/Include/Zmq** into your MetaTrader installation's **MQL4/Include** directory as-is. Your **MQL4/Include** directory should now have two additional folders "Mql" and "Zmq".
 1. Copy **libsodium.dll** and **libzmq.dll** from **mql-zmq-master/Library/MT4** to your MetaTrader installation's **MQL4/Libraries** directory.
 1. Download **DWX_ZeroMQ_Server_vX.Y.Z_RCx.mq4** and place it inside your MetaTrader installation's **MQL4/Experts** directory.
-1. Finally, download **DWX_ZeroMQ_Connector_vX_Y_Z_RCx.py**.
+1. Finally, download **vX.Y.Z / python / api / DWX_ZeroMQ_Connector_vX_Y_Z_RCx.py**.
 
 **Note:** vX_Y_Z_RCx refers to version and release candidate, e.g. v2.0.1_RC8.
 
