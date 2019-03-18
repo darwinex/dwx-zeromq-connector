@@ -55,7 +55,22 @@ This project requires the following:
 * **mql4-lib** (https://github.com/dingmaotu/mql4-lib)
 * **mql-zmq** (https://github.com/dingmaotu/mql-zmq)
 
-For your convenience, files from the last three items above have been included in this repository with appropriate copyrights referenced within.
+For your convenience, files from the last three items above have been included in this repository with appropriate copyrights referenced within. 
+
+_This project incorporates functionality authored by Ding Li (GitHub: https://github.com/dingmaotu), who has kindly licensed his work under the Apache 2.0 license._
+
+_We acknowledge copyright as per the terms of the license, the following repositories serving as mandatory dependencies for this project:_
+
+_1. https://github.com/dingmaotu/mql-zmq_
+
+_1. https://github.com/dingmaotu/mql4-lib_
+
+_Thank you Ding for your amazing open source contribution to this space!_
+
+_Sincerely,<br>
+The Darwinex Labs Team<br>
+www.darwinex.com
+
 
 ### Steps:
 
