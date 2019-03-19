@@ -61,9 +61,9 @@ _This project incorporates functionality authored by Ding Li (GitHub: https://gi
 
 _We acknowledge copyright as per the terms of the license, the following repositories serving as mandatory dependencies for this project:_
 
-_1. https://github.com/dingmaotu/mql-zmq_
+1. _https://github.com/dingmaotu/mql-zmq_
 
-_1. https://github.com/dingmaotu/mql4-lib_
+1. _https://github.com/dingmaotu/mql4-lib_
 
 _Thank you Ding for your amazing open source contribution to this space!_
 
