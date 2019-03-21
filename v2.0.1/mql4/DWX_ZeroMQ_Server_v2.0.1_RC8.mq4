@@ -89,6 +89,7 @@ int OnInit()
    pullSocket.bind(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PUSH_PORT));
    
    pullSocket.setReceiveHighWaterMark(1);
+   
    pullSocket.setLinger(0);
    
    if (Publish_MarketData == TRUE)
@@ -546,31 +547,35 @@ int DWX_OpenOrder(string _symbol, int _type, double _lots, double _price, double
 // SET SL/TP
 bool DWX_SetSLTP(int ticket, double _SL, double _TP, int _magic, int _type, double _price, string _symbol, int retries, string &zmq_ret) {
    
-   int dir_flag = -1;
-   
-   if (_type == 0 || _type == 2 || _type == 4)
-      dir_flag = 1;
- 
-   double vpoint  = MarketInfo(OrderSymbol(), MODE_POINT);
-   int    vdigits = (int)MarketInfo(OrderSymbol(), MODE_DIGITS);
-   
-   if(OrderModify(ticket, OrderOpenPrice(), NormalizeDouble(OrderOpenPrice()-_SL*dir_flag*vpoint,vdigits), NormalizeDouble(OrderOpenPrice()+_TP*dir_flag*vpoint,vdigits), 0, 0)) {
-      zmq_ret = zmq_ret + ", '_sl': " + DoubleToString(_SL) + ", '_tp': " + DoubleToString(_TP);
-      return(true);
-   } else {
-      int error = GetLastError();
-      zmq_ret = zmq_ret + ", '_response': '" + IntegerToString(error) + "', '_response_value': '" + ErrorDescription(error) + "'";
-
-      if(retries == 0) {
-         RefreshRates();
-         DWX_CloseAtMarket(-1, zmq_ret);
-         // int lastOrderErrorCloseTime = TimeCurrent();
-      }
+   if (OrderSelect(ticket, SELECT_BY_TICKET) == true)
+   {
+      int dir_flag = -1;
       
-      return(false);
-   }
+      if (OrderType() == 0 || OrderType() == 2 || OrderType() == 4)
+         dir_flag = 1;
     
-   return(true);
+      double vpoint  = MarketInfo(OrderSymbol(), MODE_POINT);
+      int    vdigits = (int)MarketInfo(OrderSymbol(), MODE_DIGITS);
+      
+      if(OrderModify(ticket, OrderOpenPrice(), NormalizeDouble(OrderOpenPrice()-_SL*dir_flag*vpoint,vdigits), NormalizeDouble(OrderOpenPrice()+_TP*dir_flag*vpoint,vdigits), 0, 0)) {
+         zmq_ret = zmq_ret + ", '_sl': " + DoubleToString(_SL) + ", '_tp': " + DoubleToString(_TP);
+         return(true);
+      } else {
+         int error = GetLastError();
+         zmq_ret = zmq_ret + ", '_response': '" + IntegerToString(error) + "', '_response_value': '" + ErrorDescription(error) + "', '_sl_attempted': " + NormalizeDouble(OrderOpenPrice()-_SL*dir_flag*vpoint,vdigits) + ", '_tp_attempted': " + NormalizeDouble(OrderOpenPrice()+_TP*dir_flag*vpoint,vdigits);
+   
+         if(retries == 0) {
+            RefreshRates();
+            DWX_CloseAtMarket(-1, zmq_ret);
+            // int lastOrderErrorCloseTime = TimeCurrent();
+         }
+         
+         return(false);
+      }
+   }    
+   
+   // return(true);
+   return(false);
 }
 
 // CLOSE AT MARKET
