@@ -35,11 +35,11 @@ extern int MaximumSlippage = 3;
 extern bool DMA_MODE = true;
 
 extern string t1 = "--- ZeroMQ Configuration ---";
-extern bool Publish_MarketData = false;
+extern bool Publish_MarketData  = false;
+extern bool Publish_MarketRates = false;
 
-string Publish_Symbols[7] = {
-   "EURUSD","GBPUSD","USDJPY","USDCAD","AUDUSD","NZDUSD","USDCHF"
-};
+// Dynamic array initialized on OnInit() event handler
+string Publish_Symbols[];
 
 /*
 string Publish_Symbols[28] = {
@@ -66,12 +66,68 @@ Socket pubSocket(context, ZMQ_PUB);
 uchar _data[];
 ZmqMsg request;
 
+
+/**
+ * Class definition for an specific instrument (symbol-timeframe)
+ */
+class Instrument{
+public:
+    string name;                //!< Instrument descriptive name
+    string symbol;              //!< Symbol
+    ENUM_TIMEFRAMES timeframe;  //!< Timeframe
+    datetime published;         //!< Timestamp of the last published OHLC rate, else 0
+  
+    // Default constructor
+    Instrument(){
+        name =""; symbol=""; published=0;_ready=false;
+    }
+    
+    // Constructor by descriptive name SYMBOL_TIMEFRAME
+    Instrument(string iname){
+        _ready = false;
+        name = iname;
+        string _tokens[];
+        int _num_tokens = StringSplit(iname, StringGetCharacter("_",0), _tokens);
+        if(_num_tokens>=2){
+            symbol = _tokens[0];
+            _ready = GetTimeframe(_tokens[1], timeframe);
+        }    
+        published = 0;
+    }
+    
+    // Check if instrument is valid and ready for use
+    bool isReady() {return _ready;}
+        
+    // Get last rates bars
+    int GetRates(MqlRates& rates[], int count){
+        if(!_ready){
+            return 0;
+        }
+        return CopyRates(symbol, timeframe, 0, count, rates);
+    }
+    
+protected:
+    // Flag to check if instrument is created properly
+    bool _ready;    
+};
+
+// Array of instruments whose rates will be published if Publish_MarketRates = True. It is initialized on OnInit() and
+// can be updated through TRACK_RATES request from client peers.
+Instrument Publish_Instruments[];
+
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
-int OnInit()
-  {
-//---
+int OnInit() {
+    //---
+    
+    // Default symbol list. Can be modified through TRACK_PRICES request from client side.
+    ArrayResize(Publish_Symbols, 1);
+    Publish_Symbols[0] = "EURAUD";
+    
+    // Default instrument list. Can be modified through TRACK_RATES request from client side.
+    ArrayResize(Publish_Instruments, 1);
+    Publish_Instruments[0] = new Instrument("EURAUD_M1");
 
    EventSetMillisecondTimer(MILLISECOND_TIMER);     // Set Millisecond Timer to get client socket input
    
@@ -92,8 +148,8 @@ int OnInit()
    
    pullSocket.setLinger(0);
    
-   if (Publish_MarketData == TRUE)
-   {
+   if (Publish_MarketData == TRUE || Publish_MarketRates == TRUE)
+   {      
       // Send new market data to PUB_PORT that client is subscribed to.
       Print("[PUB] Binding MT4 Server to Socket on Port " + IntegerToString(PUB_PORT) + "..");
       pubSocket.bind(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PUB_PORT));
@@ -117,7 +173,7 @@ void OnDeinit(const int reason)
    Print("[PULL] Unbinding MT4 Server from Socket on Port " + IntegerToString(PUSH_PORT) + "..");
    pullSocket.unbind(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PUSH_PORT));
    
-   if (Publish_MarketData == TRUE)
+   if (Publish_MarketData == TRUE || Publish_MarketRates == TRUE)
    {
       Print("[PUB] Unbinding MT4 Server from Socket on Port " + IntegerToString(PUB_PORT) + "..");
       pubSocket.unbind(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PUB_PORT));
@@ -138,17 +194,42 @@ void OnTick()
    /*
       Use this OnTick() function to send market data to subscribed client.
    */
-   if(!IsStopped() && Publish_MarketData == true)
+   if(!IsStopped() && (Publish_MarketData == true || Publish_MarketRates == TRUE))
    {
-      for(int s = 0; s < ArraySize(Publish_Symbols); s++)
-      {
-         // Python clients can subscribe to a price feed by setting
-         // socket options to the symbol name. For example:
-         
-         string _tick = GetBidAsk(Publish_Symbols[s]);
-         Print("Sending " + Publish_Symbols[s] + " " + _tick + " to PUB Socket");
-         ZmqMsg reply(StringFormat("%s %s", Publish_Symbols[s], _tick));
-         pubSocket.send(reply, true);
+      if(Publish_MarketData == TRUE) {
+        for(int s = 0; s < ArraySize(Publish_Symbols); s++) {
+          // Python clients can subscribe to a price feed by setting
+          // socket options to the symbol name. For example:
+          string _tick = GetBidAsk(Publish_Symbols[s]);
+          Print("Sending " + Publish_Symbols[s] + " " + _tick + " to PUB Socket");      
+          ZmqMsg reply(StringFormat("%s %s", Publish_Symbols[s], _tick));
+          pubSocket.send(reply, true);
+        }
+      }
+      
+      if(Publish_MarketRates == TRUE){
+        for(int s = 0; s < ArraySize(Publish_Instruments); s++) {
+          // Python clients can subscribe to a rates feed by setting
+          // socket options to the symbol name. For example:
+          MqlRates curr_rate[];
+          int count = Publish_Instruments[s].GetRates(curr_rate, 1);
+          if(count > 0 && Publish_Instruments[s].published < curr_rate[0].time){
+              // updates last timestamp
+              Publish_Instruments[s].published = curr_rate[0].time;
+              string _rates = StringFormat("%s,%f,%f,%f,%f,%d,%d,%d",
+                                    TimeToString(curr_rate[0].time),
+                                    curr_rate[0].open, 
+                                    curr_rate[0].high, 
+                                    curr_rate[0].low, 
+                                    curr_rate[0].close, 
+                                    curr_rate[0].tick_volume, 
+                                    curr_rate[0].spread, 
+                                    curr_rate[0].real_volume);
+              Print("Sending Rates " + Publish_Instruments[s].name + " " + _rates + " to PUB Socket");
+              ZmqMsg reply(StringFormat("%s %s", Publish_Instruments[s].name, _rates));
+              pubSocket.send(reply, true);            
+          }
+        }
       }
    }
 }
@@ -235,6 +316,16 @@ void InterpretZmqMessage(Socket &pSocket, string &compArray[]) {
    // 2.2) DATA|SYMBOL|TIMEFRAME|START_DATETIME|END_DATETIME
    
    // 2.3) HIST|SYMBOL|TIMEFRAME|START_DATETIME|END_DATETIME
+   
+   // 3) Instruments configuration
+   
+   // 3.1) TRACK_PRICES|SYMBOL_1|SYMBOL_2|...|SYMBOL_N  -> List of symbols to receive real-time price updates (bid-ask)
+
+   // 3.2) TRACK_RATES|INSTRUMENT_1|INSTRUMENT_2|...|INSTRUMENT_N  -> List of instruments to receive OHLC rates
+           // Note: Instruments are bilt with format: SYMBOL_TIMEFRAME for example:
+           //       Symbol: EURUSD, Timeframe: PERIOD_M1 ----> Instrument = "EURUSD_M1"          
+           //       Symbol: GDAXI,  Timeframe: PERIOD_H4 ----> Instrument = "GDAXI_H4"          
+  
 
    // NOTE: datetime has format: D'2015.01.01 00:00'
    
@@ -287,6 +378,10 @@ void InterpretZmqMessage(Socket &pSocket, string &compArray[]) {
       switch_action = 8;
    if(compArray[0] == "HIST")
       switch_action = 9;
+   if(compArray[0] == "TRACK_PRICES")
+      switch_action = 10;
+   if(compArray[0] == "TRACK_INSTRUMENTS")
+      switch_action = 11;
    
    string zmq_ret = "";
    string ret = "";
@@ -392,6 +487,26 @@ void InterpretZmqMessage(Socket &pSocket, string &compArray[]) {
          InformPullClient(pSocket, zmq_ret + "}");
          
          break;
+           
+      case 10: // SETUP LIST OF SYMBOLS TO TRACK PRICES
+         
+         zmq_ret = "{";
+         
+         DWX_SetSymbolList(compArray, zmq_ret);
+         
+         InformPullClient(pSocket, zmq_ret + "}");
+         
+         break;
+           
+      case 11: // SETUP LIST OF INSTRUMENTS TO TRACK RATES
+         
+         zmq_ret = "{";
+         
+         DWX_SetInstrumentList(compArray, zmq_ret);
+         
+         InformPullClient(pSocket, zmq_ret + "}");
+         
+         break;
          
       default: 
          break;
@@ -493,7 +608,7 @@ void DWX_GetHist(string& compArray[], string& zmq_ret) {
                
    // if data then forms response as json:
    // {'_action: 'HIST', 
-   //  '_data':[{'time': 'YYYY:MM:DD,HH:MM:SS', 'open':0.00, 'high':0.0, 'low':0.0, 'close':0.0, 'tick_volume:0, 'spread':0, 'real_volume':0},
+   //  '_data':[{'time': 'YYYY:MM:DD,HH:MM:SS', 'open':0.0, 'high':0.0, 'low':0.0, 'close':0.0, 'tick_volume:0, 'spread':0, 'real_volume':0},
    //           {...},
    //           ...  
    //          ]
@@ -502,7 +617,7 @@ void DWX_GetHist(string& compArray[], string& zmq_ret) {
       
       zmq_ret = zmq_ret + ", '_data': [";
       
-      // Construct string of prices and send to PULL client.
+      // Construct string of rates and send to PULL client.
       for(int i = 0; i < rates_count; i++ ) {
          
          if(i == 0)
@@ -522,6 +637,98 @@ void DWX_GetHist(string& compArray[], string& zmq_ret) {
    else {
       zmq_ret = zmq_ret + ", " + "'_response': 'NOT_AVAILABLE'";
    }         
+}
+
+
+//+------------------------------------------------------------------+
+// Set list of symbols to get real-time price data
+void DWX_SetSymbolList(string& compArray[], string& zmq_ret) {
+    
+    zmq_ret = zmq_ret + "'_action': 'TRACK_PRICES'";
+    
+    // Format: TRACK_PRICES|SYMBOL_1|SYMBOL_2|...|SYMBOL_N
+   
+    int _num_symbols = ArraySize(compArray) - 1;
+    if(_num_symbols > 0){
+        ArrayResize(Publish_Symbols, _num_symbols);
+        for(int s=0; s<_num_symbols; s++){
+            Publish_Symbols[s] = compArray[s+1];
+        }
+        zmq_ret = zmq_ret + ", '_data': {'symbol_count':" + IntegerToString(_num_symbols) + "}";
+    }
+    else {
+      zmq_ret = zmq_ret + ", " + "'_response': 'NOT_AVAILABLE'";
+   }         
+}
+
+
+//+------------------------------------------------------------------+
+// Set list of instruments to get OHLC rates
+void DWX_SetInstrumentList(string& compArray[], string& zmq_ret) {
+    
+    zmq_ret = zmq_ret + "'_action': 'TRACK_RATES'";
+    
+    // Format: TRACK_RATES|INSTRUMENT_1|INSTRUMENT_2|...|INSTRUMENT_N
+      
+    int _num_instruments = ArraySize(compArray) - 1;
+    int _valid_instruments = 0;
+    if(_num_instruments > 0){
+        ArrayResize(Publish_Instruments, _num_instruments);
+        for(int s=0; s<_num_instruments; s++){ 
+            Publish_Instruments[s] = new Instrument(compArray[s+1]);
+            if(Publish_Instruments[s].isReady()){
+                _valid_instruments++;                
+            }
+        }
+        zmq_ret = zmq_ret + ", '_data': {'instrument_count':" + IntegerToString(_valid_instruments) + "}";
+    }
+    else {
+      zmq_ret = zmq_ret + ", " + "'_response': 'NOT_AVAILABLE'";
+   }         
+}
+
+
+//+------------------------------------------------------------------+
+// Get Timeframe from text
+bool GetTimeframe(string tf, ENUM_TIMEFRAMES& result){
+    // Standard timeframes
+    if(StringCompare("M1", tf) == 0){
+        result = PERIOD_M1;
+        return true;
+    }
+    if(StringCompare("M5", tf) == 0){
+        result = PERIOD_M5;
+        return true;
+    }
+    if(StringCompare("M15", tf) == 0){
+        result = PERIOD_M15;
+        return true;
+    }
+    if(StringCompare("M30", tf) == 0){
+        result = PERIOD_M30;
+        return true;
+    }
+    if(StringCompare("H1", tf) == 0){
+        result = PERIOD_H1;
+        return true;
+    }
+    if(StringCompare("H4", tf) == 0){
+        result = PERIOD_H4;
+        return true;
+    }
+    if(StringCompare("D1", tf) == 0){
+        result = PERIOD_D1;
+        return true;
+    }
+    if(StringCompare("W1", tf) == 0){
+        result = PERIOD_W1;
+        return true;
+    }
+    if(StringCompare("MN1", tf) == 0){
+        result = PERIOD_MN1;
+        return true;
+    }
+    return false;    
 }
 
 //+------------------------------------------------------------------+
