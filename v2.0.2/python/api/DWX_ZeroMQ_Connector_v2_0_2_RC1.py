@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 """
     DWX_ZeroMQ_Connector_v2_0_1_RC8.py
     --
@@ -33,6 +34,8 @@ class DWX_ZeroMQ_Connector():
                  _PULL_PORT=32769,           # Port for Receiving responses
                  _SUB_PORT=32770,            # Port for Subscribing for prices
                  _delimiter=';',
+                 _pulldata_handlers = [],    # Handlers to process data received through PULL port.
+                 _subdata_handlers = [],     # Handlers to process data received through SUB port.
                  _verbose=False):           # String delimiter           
     
         # Strategy Status (if this is False, ZeroMQ will not listen for data)
@@ -57,6 +60,10 @@ class DWX_ZeroMQ_Connector():
         self._PUSH_PORT = _PUSH_PORT
         self._PULL_PORT = _PULL_PORT
         self._SUB_PORT = _SUB_PORT
+
+        # Handlers for received data (pull and sub ports)
+        self._pulldata_handlers = _pulldata_handlers
+        self._subdata_handlers = _subdata_handlers
         
         # Create Sockets
         self._PUSH_SOCKET = self._ZMQ_CONTEXT.socket(zmq.PUSH)
@@ -351,10 +358,10 @@ class DWX_ZeroMQ_Connector():
     Function to construct messages for sending TRACK_RATES commands to MetaTrader
     """
     def _DWX_MTX_SEND_TRACKRATES_REQUEST_(self,
-                                 _instruments=['EURUSD_M1']):
+                                 _instruments=[('EURUSD_M1','EURUSD',1)]):
         _msg = 'TRACK_RATES'                                 
         for i in _instruments:
-          _msg = _msg + ";{}".format(i)
+          _msg = _msg + ";{};{}".format(i[1],i[2])
           
         # Send via PUSH Socket
         self.remote_send(self._PUSH_SOCKET, _msg)
@@ -435,7 +442,10 @@ class DWX_ZeroMQ_Connector():
                             
                             self._thread_data_output = _data
                             if self._verbose:
-                                print(_data) # default logic
+                              print(_data) # default logic
+                            # invokes data handlers on pull port
+                            for hnd in self._pulldata_handlers:
+                              hnd.onPullData(_data)
                                 
                         except Exception as ex:
                             _exstr = "Exception Type {0}. Args:\n{1!r}"
@@ -475,6 +485,9 @@ class DWX_ZeroMQ_Connector():
                       if _symbol not in self._Market_Data_DB.keys():
                         self._Market_Data_DB[_symbol] = {}
                       self._Market_Data_DB[_symbol][_timestamp] = (int(_time), float(_open), float(_high), float(_low), float(_close), int(_tick_vol), int(_spread), int(_real_vol))
+                    # invokes data handlers on sub port
+                    for hnd in self._subdata_handlers:
+                      hnd.onSubData(msg)                      
                    
                 except zmq.error.Again:
                     pass # resource temporarily unavailable, nothing to print

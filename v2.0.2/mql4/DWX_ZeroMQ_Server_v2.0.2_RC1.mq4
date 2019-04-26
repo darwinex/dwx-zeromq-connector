@@ -12,7 +12,7 @@
 //+--------------------------------------------------------------+
 #property copyright "Copyright 2017-2019, Darwinex Labs."
 #property link      "https://www.darwinex.com/"
-#property version   "2.01"
+#property version   "2.02"
 #property strict
 
 // Required: MQL-ZMQ from https://github.com/dingmaotu/mql-zmq
@@ -34,11 +34,14 @@ extern double MaximumLotSize = 0.01;
 extern int MaximumSlippage = 3;
 extern bool DMA_MODE = true;
 
-extern string t1 = "--- ZeroMQ Configuration ---";
-extern bool Publish_MarketData  = false;
-extern bool Publish_MarketRates = false;
+/** Now, MarketData and MarketRates flags can change in real time, according with
+ *  registered symbols and instruments.
+ */
+//extern string t1 = "--- ZeroMQ Configuration ---";
+bool Publish_MarketData  = false;
+bool Publish_MarketRates = false;
 
-// Dynamic array initialized on OnInit() event handler
+// Dynamic array initialized at OnInit(). Can be updated by TRACK_PRICES requests from client peers
 string Publish_Symbols[];
 
 /*
@@ -67,51 +70,62 @@ uchar _data[];
 ZmqMsg request;
 
 
+
+
 /**
- * Class definition for an specific instrument (symbol-timeframe)
+ * Class definition for an specific instrument: the tuple (symbol,timeframe)
  */
 class Instrument{
-public:
-    string name;                //!< Instrument descriptive name
-    string symbol;              //!< Symbol
-    ENUM_TIMEFRAMES timeframe;  //!< Timeframe
-    datetime published;         //!< Timestamp of the last published OHLC rate, else 0
-  
-    // Default constructor
-    Instrument(){
-        name =""; symbol=""; published=0;_ready=false;
+public:  
+                
+    //--------------------------------------------------------------
+    /** Instrument constructor */
+    Instrument(){ _symbol = ""; _name = ""; _timeframe = PERIOD_CURRENT; _last_pub_rate =0;}    
+                 
+    //--------------------------------------------------------------
+    /** Getters */
+    string          symbol()    { return _symbol; }
+    ENUM_TIMEFRAMES timeframe() { return _timeframe; }
+    string          name()      { return _name; }
+    datetime        getLastPublishTimestamp() { return _last_pub_rate; }
+    /** Setters */
+    void            setLastPublishTimestamp(datetime tmstmp) { _last_pub_rate = tmstmp; }
+   
+   //--------------------------------------------------------------
+    /** Setup instrument with symbol and timeframe descriptions
+     *  @param arg_symbol Symbol
+     *  @param arg_timeframe Timeframe
+     */
+    void setup(string arg_symbol, ENUM_TIMEFRAMES arg_timeframe){
+        _symbol = arg_symbol;
+        _timeframe = arg_timeframe;
+        _name  = _symbol + "_" + GetTimeframeText(_timeframe);
+        _last_pub_rate = 0;
     }
-    
-    // Constructor by descriptive name SYMBOL_TIMEFRAME
-    Instrument(string iname){
-        _ready = false;
-        name = iname;
-        string _tokens[];
-        int _num_tokens = StringSplit(iname, StringGetCharacter("_",0), _tokens);
-        if(_num_tokens>=2){
-            symbol = _tokens[0];
-            _ready = GetTimeframe(_tokens[1], timeframe);
-        }    
-        published = 0;
-    }
-    
-    // Check if instrument is valid and ready for use
-    bool isReady() {return _ready;}
-        
-    // Get last rates bars
+                
+    //--------------------------------------------------------------
+    /** Get last N MqlRates from this instrument (symbol-timeframe)
+     *  @param rates Receives last 'count' rates
+     *  @param count Number of requested rates
+     *  @return Number of returned rates
+     */
     int GetRates(MqlRates& rates[], int count){
-        if(!_ready){
-            return 0;
+        // ensures that symbol is setup
+        if(StringLen(_symbol) > 0){
+            return CopyRates(_symbol, _timeframe, 0, count, rates);
         }
-        return CopyRates(symbol, timeframe, 0, count, rates);
+        return 0;
     }
     
 protected:
-    // Flag to check if instrument is created properly
-    bool _ready;    
+    string _name;                //!< Instrument descriptive name
+    string _symbol;              //!< Symbol
+    ENUM_TIMEFRAMES _timeframe;  //!< Timeframe
+    datetime _last_pub_rate;     //!< Timestamp of the last published OHLC rate. Default = 0 (1 Jan 1970)
+ 
 };
 
-// Array of instruments whose rates will be published if Publish_MarketRates = True. It is initialized on OnInit() and
+// Array of instruments whose rates will be published if Publish_MarketRates = True. It is initialized at OnInit() and
 // can be updated through TRACK_RATES request from client peers.
 Instrument Publish_Instruments[];
 
@@ -121,44 +135,52 @@ Instrument Publish_Instruments[];
 int OnInit() {
     //---
     
-    // Default symbol list. Can be modified through TRACK_PRICES request from client side.
-    ArrayResize(Publish_Symbols, 1);
-    Publish_Symbols[0] = "EURAUD";
-    
-    // Default instrument list. Can be modified through TRACK_RATES request from client side.
-    ArrayResize(Publish_Instruments, 1);
-    Publish_Instruments[0] = new Instrument("EURAUD_M1");
+//    // Default symbol list. Can be modified through TRACK_PRICES request from client side.
+//    ArrayResize(Publish_Symbols, 1);
+//    Publish_Symbols[0] = "EURAUD";
+//    
+//    // Default instrument list. Can be modified through TRACK_RATES request from client side.
+//    ArrayResize(Publish_Instruments, 1);
+//    Publish_Instruments[0].setup("EURAUD", PERIOD_M1);
 
-   EventSetMillisecondTimer(MILLISECOND_TIMER);     // Set Millisecond Timer to get client socket input
+    EventSetMillisecondTimer(MILLISECOND_TIMER);     // Set Millisecond Timer to get client socket input
    
-   context.setBlocky(false);
+    context.setBlocky(false);
    
-   // Send responses to PULL_PORT that client is listening on.
-   Print("[PUSH] Binding MT4 Server to Socket on Port " + IntegerToString(PULL_PORT) + "..");
-   pushSocket.bind(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PULL_PORT));
+    // Send responses to PULL_PORT that client is listening on.   
+    if(!pushSocket.bind(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PULL_PORT))){
+        Print("[PUSH] ####ERROR#### Binding MT4 Server to Socket on Port " + IntegerToString(PULL_PORT) + "..");
+        return(INIT_FAILED);
+    }
+    else{
+        Print("[PUSH] Binding MT4 Server to Socket on Port " + IntegerToString(PULL_PORT) + "..");
+        pushSocket.setSendHighWaterMark(1);
+        pushSocket.setLinger(0);
+    }
    
-   pushSocket.setSendHighWaterMark(1);
-   pushSocket.setLinger(0);
+    // Receive commands from PUSH_PORT that client is sending to.     
+    if(!pullSocket.bind(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PUSH_PORT))){
+        Print("[PULL] ####ERROR#### Binding MT4 Server to Socket on Port " + IntegerToString(PUSH_PORT) + "..");
+        return(INIT_FAILED);
+    }
+    else{
+        Print("[PULL] Binding MT4 Server to Socket on Port " + IntegerToString(PUSH_PORT) + "..");
+        pullSocket.setReceiveHighWaterMark(1);   
+        pullSocket.setLinger(0); 
+    }
    
-   // Receive commands from PUSH_PORT that client is sending to.
-   Print("[PULL] Binding MT4 Server to Socket on Port " + IntegerToString(PUSH_PORT) + "..");   
-   pullSocket.bind(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PUSH_PORT));
-   
-   pullSocket.setReceiveHighWaterMark(1);
-   
-   pullSocket.setLinger(0);
-   
-   if (Publish_MarketData == TRUE || Publish_MarketRates == TRUE)
-   {      
-      // Send new market data to PUB_PORT that client is subscribed to.
-      Print("[PUB] Binding MT4 Server to Socket on Port " + IntegerToString(PUB_PORT) + "..");
-      pubSocket.bind(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PUB_PORT));
-      pubSocket.setSendHighWaterMark(1);
-      pubSocket.setLinger(0);
-   }
-   
-//---
-   return(INIT_SUCCEEDED);
+    // Send new market data to PUB_PORT that client is subscribed to.      
+    if(!pubSocket.bind(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PUB_PORT))){
+        Print("[PUB] ####ERROR#### Binding MT4 Server to Socket on Port " + IntegerToString(PUB_PORT) + "..");
+        return(INIT_FAILED);
+    }
+    else{
+        Print("[PUB] Binding MT4 Server to Socket on Port " + IntegerToString(PUB_PORT) + "..");
+        pubSocket.setSendHighWaterMark(1);
+        pubSocket.setLinger(0);
+    }
+         
+    return(INIT_SUCCEEDED);
   }
 //+------------------------------------------------------------------+
 //| Expert deinitialization function                                 |
@@ -194,40 +216,46 @@ void OnTick()
    /*
       Use this OnTick() function to send market data to subscribed client.
    */
-   if(!IsStopped() && (Publish_MarketData == true || Publish_MarketRates == TRUE))
+   if(!IsStopped())
    {
+      // Python clients can subscribe to a price feed for each tracked symbol
       if(Publish_MarketData == TRUE) {
         for(int s = 0; s < ArraySize(Publish_Symbols); s++) {
-          // Python clients can subscribe to a price feed by setting
-          // socket options to the symbol name. For example:
-          string _tick = GetBidAsk(Publish_Symbols[s]);
-          Print("Sending " + Publish_Symbols[s] + " " + _tick + " to PUB Socket");      
+          string _tick = GetBidAsk(Publish_Symbols[s]);            
+          // publish: topic=symbol msg=tick_data    
           ZmqMsg reply(StringFormat("%s %s", Publish_Symbols[s], _tick));
-          pubSocket.send(reply, true);
+          Print("Sending PRICE [" + reply.getData() + "] to PUB Socket");
+          if(!pubSocket.send(reply, true)){
+            Print("###ERROR### Sending price");
+          }
         }
       }
       
+      // Python clients can also subscribe to a rates feed for each tracked instrument
       if(Publish_MarketRates == TRUE){
         for(int s = 0; s < ArraySize(Publish_Instruments); s++) {
-          // Python clients can subscribe to a rates feed by setting
-          // socket options to the symbol name. For example:
-          MqlRates curr_rate[];
-          int count = Publish_Instruments[s].GetRates(curr_rate, 1);
-          if(count > 0 && Publish_Instruments[s].published < curr_rate[0].time){
-              // updates last timestamp
-              Publish_Instruments[s].published = curr_rate[0].time;
-              string _rates = StringFormat("%s,%f,%f,%f,%f,%d,%d,%d",
-                                    TimeToString(curr_rate[0].time),
+            MqlRates curr_rate[];
+            int count = Publish_Instruments[s].GetRates(curr_rate, 1);
+            // if last rate is returned and its timestamp is greater than the last published...
+            if(count > 0 && Publish_Instruments[s].getLastPublishTimestamp() < curr_rate[0].time){
+                // then send a new pub message with this new rate
+                string _rates = StringFormat("%u;%f;%f;%f;%f;%d;%d;%d",
+                                    curr_rate[0].time,
                                     curr_rate[0].open, 
                                     curr_rate[0].high, 
                                     curr_rate[0].low, 
                                     curr_rate[0].close, 
                                     curr_rate[0].tick_volume, 
                                     curr_rate[0].spread, 
-                                    curr_rate[0].real_volume);
-              Print("Sending Rates " + Publish_Instruments[s].name + " " + _rates + " to PUB Socket");
-              ZmqMsg reply(StringFormat("%s %s", Publish_Instruments[s].name, _rates));
-              pubSocket.send(reply, true);            
+                                    curr_rate[0].real_volume);                
+                ZmqMsg reply(StringFormat("%s %s", Publish_Instruments[s].name(), _rates));
+                Print("Sending Rates @"+TimeToStr(curr_rate[0].time) + " [" + reply.getData() + "] to PUB Socket");
+                if(!pubSocket.send(reply, true)){
+                    Print("###ERROR### Sending rate");            
+                }
+                // updates the timestamp
+                Publish_Instruments[s].setLastPublishTimestamp(curr_rate[0].time);
+                
           }
         }
       }
@@ -260,7 +288,9 @@ void OnTimer()
       // pushSocket.send(reply);
       
       // Send response, but don't block
-      pushSocket.send(reply, true);
+      if(!pushSocket.send(reply, true)){
+        Print("###ERROR### Sending message");
+      }
    }
 }
 
@@ -380,7 +410,7 @@ void InterpretZmqMessage(Socket &pSocket, string &compArray[]) {
       switch_action = 9;
    if(compArray[0] == "TRACK_PRICES")
       switch_action = 10;
-   if(compArray[0] == "TRACK_INSTRUMENTS")
+   if(compArray[0] == "TRACK_RATES")
       switch_action = 11;
    
    string zmq_ret = "";
@@ -655,9 +685,12 @@ void DWX_SetSymbolList(string& compArray[], string& zmq_ret) {
             Publish_Symbols[s] = compArray[s+1];
         }
         zmq_ret = zmq_ret + ", '_data': {'symbol_count':" + IntegerToString(_num_symbols) + "}";
+        Publish_MarketData = true;
     }
     else {
-      zmq_ret = zmq_ret + ", " + "'_response': 'NOT_AVAILABLE'";
+        Publish_MarketData = false;
+        ArrayResize(Publish_Symbols, 1);
+        zmq_ret = zmq_ret + ", '_data': {'symbol_count': 0}";
    }         
 }
 
@@ -668,67 +701,41 @@ void DWX_SetInstrumentList(string& compArray[], string& zmq_ret) {
     
     zmq_ret = zmq_ret + "'_action': 'TRACK_RATES'";
     
-    // Format: TRACK_RATES|INSTRUMENT_1|INSTRUMENT_2|...|INSTRUMENT_N
+    // Format: TRACK_RATES|SYMBOL_1|TIMEFRAME_1|SYMBOL_2|TIMEFRAME_2|...|SYMBOL_N|TIMEFRAME_N
       
-    int _num_instruments = ArraySize(compArray) - 1;
-    int _valid_instruments = 0;
+    int _num_instruments = (ArraySize(compArray) - 1)/2;
     if(_num_instruments > 0){
-        ArrayResize(Publish_Instruments, _num_instruments);
+        ArrayResize(Publish_Instruments, _num_instruments);        
         for(int s=0; s<_num_instruments; s++){ 
-            Publish_Instruments[s] = new Instrument(compArray[s+1]);
-            if(Publish_Instruments[s].isReady()){
-                _valid_instruments++;                
-            }
-        }
-        zmq_ret = zmq_ret + ", '_data': {'instrument_count':" + IntegerToString(_valid_instruments) + "}";
+            Publish_Instruments[s].setup(compArray[(2*s)+1], (ENUM_TIMEFRAMES)StrToInteger(compArray[(2*s)+2]));
+         }
+        zmq_ret = zmq_ret + ", '_data': {'instrument_count':" + IntegerToString(_num_instruments) + "}";
+        Publish_MarketRates = true;
     }
     else {
-      zmq_ret = zmq_ret + ", " + "'_response': 'NOT_AVAILABLE'";
+        Publish_MarketRates = false;    
+        ArrayResize(Publish_Instruments, 1);           
+        zmq_ret = zmq_ret + ", '_data': {'instrument_count': 0}";
    }         
 }
 
 
 //+------------------------------------------------------------------+
 // Get Timeframe from text
-bool GetTimeframe(string tf, ENUM_TIMEFRAMES& result){
+string GetTimeframeText(ENUM_TIMEFRAMES tf){
     // Standard timeframes
-    if(StringCompare("M1", tf) == 0){
-        result = PERIOD_M1;
-        return true;
+    switch(tf){
+        case PERIOD_M1:    return "M1";
+        case PERIOD_M5:    return "M5";
+        case PERIOD_M15:   return "M15";
+        case PERIOD_M30:   return "M30";
+        case PERIOD_H1:    return "H1";
+        case PERIOD_H4:    return "H4";
+        case PERIOD_D1:    return "D1";
+        case PERIOD_W1:    return "W1";
+        case PERIOD_MN1:   return "MN1";
+        default:           return "UNKNOWN";
     }
-    if(StringCompare("M5", tf) == 0){
-        result = PERIOD_M5;
-        return true;
-    }
-    if(StringCompare("M15", tf) == 0){
-        result = PERIOD_M15;
-        return true;
-    }
-    if(StringCompare("M30", tf) == 0){
-        result = PERIOD_M30;
-        return true;
-    }
-    if(StringCompare("H1", tf) == 0){
-        result = PERIOD_H1;
-        return true;
-    }
-    if(StringCompare("H4", tf) == 0){
-        result = PERIOD_H4;
-        return true;
-    }
-    if(StringCompare("D1", tf) == 0){
-        result = PERIOD_D1;
-        return true;
-    }
-    if(StringCompare("W1", tf) == 0){
-        result = PERIOD_W1;
-        return true;
-    }
-    if(StringCompare("MN1", tf) == 0){
-        result = PERIOD_MN1;
-        return true;
-    }
-    return false;    
 }
 
 //+------------------------------------------------------------------+
