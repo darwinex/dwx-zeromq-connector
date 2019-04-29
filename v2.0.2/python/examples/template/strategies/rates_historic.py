@@ -5,7 +5,8 @@
     rates_historic.py
     
     An example using the Darwinex ZeroMQ Connector for Python 3 and MetaTrader 4  PULL REQUEST
-    for v2.0.1 in which a Client request a rate historic from EURGBP Daily from the last 5 days. 
+    for v2.0.1 in which a Client request a rate historic from EURGBP Daily from 2019.01.04 to
+    to 2019.01.14.
 
 
     -------------------
@@ -15,7 +16,7 @@
     For example, to receive rates from instruments EURUSD(M1), between two dates, it will send this 
     command to the Server, through its PUSH channel:
 
-    "HIST;EURUSD;1;2019.01.04 17:00:00;2019.01.14 17:00:00"
+    "HIST;EURUSD;1;2019.01.04 00:00:00;2019.01.14 00:00:00"
 
           
     --
@@ -57,7 +58,6 @@ class rates_historic(DWX_ZMQ_Strategy):
     
     def __init__(self, 
                  _name="PRICES_SUBSCRIPTIONS",
-                 _hist=('EURUSD', 1440),
                  _delay=0.1,
                  _broker_gmt=3,
                  _verbose=False):
@@ -72,7 +72,6 @@ class rates_historic(DWX_ZMQ_Strategy):
                          _verbose)
         
         # This strategy's variables
-        self._hist = _hist
         self._delay = _delay
         self._verbose = _verbose
         self._finished = False
@@ -115,10 +114,11 @@ class rates_historic(DWX_ZMQ_Strategy):
         self._finished = False
 
         # request rates
-        self._zmq._DWX_MTX_SEND_MARKETHIST_REQUEST_(_symbol='EURUSD',
+        print('\rRequesting Daily Rates from EURGBP', end='', flush=True)
+        self._zmq._DWX_MTX_SEND_MARKETHIST_REQUEST_(_symbol='EURGBP',
                                                     _timeframe=1440,
-                                                    _start='2019.01.04 17:00:00',
-                                                    _end  ='2019.01.14 17:00:00')
+                                                    _start='2019.01.04 00:00:00',
+                                                    _end  ='2019.01.14 00:00:00')
 
     ##########################################################################    
     def stop(self):
@@ -138,20 +138,6 @@ class rates_historic(DWX_ZMQ_Strategy):
         self._lock.release()
         sleep(self._delay)
       
-      try:
-        # Acquire lock
-        self._lock.acquire()
-        self._zmq._DWX_MTX_SEND_TRACKPRICES_REQUEST_([])        
-        print('\rRemoving symbols list', end='', flush=True)
-        sleep(self._delay)
-        self._zmq._DWX_MTX_SEND_TRACKRATES_REQUEST_([])
-        print('\rRemoving instruments list', end='', flush=True)
-
-      finally:
-        # Release lock
-        self._lock.release()
-        sleep(self._delay)
-
       self._finished = True
 
 
@@ -164,7 +150,7 @@ class rates_historic(DWX_ZMQ_Strategy):
 """
 if __name__ == "__main__":
   
-  # creates object with a predefined configuration: historic EURUSD_D1 between 4th adn 14th January 2019
+  # creates object with a predefined configuration: historic EURGBP_D1 between 4th adn 14th January 2019
   print('\rLoading example...', end='', flush=True)
   example = rates_historic()  
 

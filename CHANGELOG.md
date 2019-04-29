@@ -15,7 +15,7 @@
 ## Introduction
 Playing with this project during some time, I miss some important features both on the Client side (ZMQ-Connector) and on the Server side (Expert Advisor). 
 
-With this pull request, some modifications have been added to both sides, to improve the capabilities provided by this project.
+With this pull request, some modifications have been added to both sides, to improve the capabilities provided by this project. All modifications have been deployed in subfolder [v2.0.2](https://github.com/raulMrello/dwx-zeromq-connector/tree/release/v2.0.2/v2.0.2) developed on branch: _**release/v2.0.2**_
 
 Along next sections, I'll explain them in more detail.
 
@@ -372,16 +372,18 @@ Loading example...
 [INIT] Ready to send commands to METATRADER (PUSH): 32768
 [INIT] Listening for responses from METATRADER (PULL): 32769
 \Running example...
+Requesting Daily Rates from EURGBP
 Waiting example termination...
 Historic from ExpertAdvisor={
   '_action': 'HIST', 
   '_data': [
-    {'time': '2019.01.07 00:00', 'open': 1.13952, 'high': 1.14823, 'low': 1.13952, 'close': 1.14737, 'tick_volume': 88454, 'spread': 0, 'real_volume': 0}, 
-    {'time': '2019.01.08 00:00', 'open': 1.14736, 'high': 1.14845, 'low': 1.14225, 'close': 1.14397, 'tick_volume': 89843, 'spread': 0, 'real_volume': 0}, 
-    {'time': '2019.01.09 00:00', 'open': 1.14399, 'high': 1.15581, 'low': 1.14368, 'close': 1.15422, 'tick_volume': 117184, 'spread': 0, 'real_volume': 0}, 
-    {'time': '2019.01.10 00:00', 'open': 1.15421, 'high': 1.15697, 'low': 1.14844, 'close': 1.14993, 'tick_volume': 110855, 'spread': 0, 'real_volume': 0}, 
-    {'time': '2019.01.11 00:00', 'open': 1.1498, 'high': 1.15402, 'low': 1.14579, 'close': 1.14646, 'tick_volume': 96812, 'spread': 0, 'real_volume': 0}, 
-    {'time': '2019.01.14 00:00', 'open': 1.14583, 'high': 1.14819, 'low': 1.14507, 'close': 1.1468, 'tick_volume': 88784, 'spread': 0, 'real_volume': 0}
+    {'time': '2019.01.04 00:00', 'open': 0.90111, 'high': 0.90294, 'low': 0.89437, 'close': 0.89531, 'tick_volume': 139109, 'spread': 0, 'real_volume': 0}, 
+    {'time': '2019.01.07 00:00', 'open': 0.89476, 'high': 0.89914, 'low': 0.89476, 'close': 0.89762, 'tick_volume': 111123, 'spread': 0, 'real_volume': 0}, 
+    {'time': '2019.01.08 00:00', 'open': 0.89728, 'high': 0.9006, 'low': 0.89477, 'close': 0.89976, 'tick_volume': 112238, 'spread': 0, 'real_volume': 0}, 
+    {'time': '2019.01.09 00:00', 'open': 0.89878, 'high': 0.90411, 'low': 0.89749, 'close': 0.90236, 'tick_volume': 140615, 'spread': 0, 'real_volume': 0}, 
+    {'time': '2019.01.10 00:00', 'open': 0.90081, 'high': 0.90594, 'low': 0.90081, 'close': 0.90171, 'tick_volume': 136389, 'spread': 0, 'real_volume': 0}, 
+    {'time': '2019.01.11 00:00', 'open': 0.90143, 'high': 0.90618, 'low': 0.89221, 'close': 0.89281, 'tick_volume': 138047, 'spread': 0, 'real_volume': 0}, 
+    {'time': '2019.01.14 00:00', 'open': 0.89115, 'high': 0.89521, 'low': 0.88751, 'close': 0.89093, 'tick_volume': 121669, 'spread': 0, 'real_volume': 0}
   ]
 }
 
@@ -389,7 +391,5 @@ Historic from ExpertAdvisor={
 [KERNEL] Setting Status to False - Deactivating Threads.. please wait a bit.
 **
 Unsubscribing from all topics
-Removing symbols list
-Removing instruments list
 Bye!!!
 ```

@@ -677,12 +677,13 @@ void DWX_SetSymbolList(string& compArray[], string& zmq_ret) {
     zmq_ret = zmq_ret + "'_action': 'TRACK_PRICES'";
     
     // Format: TRACK_PRICES|SYMBOL_1|SYMBOL_2|...|SYMBOL_N
-   
+    string result = "Tracking PRICES from";
     int _num_symbols = ArraySize(compArray) - 1;
     if(_num_symbols > 0){
         ArrayResize(Publish_Symbols, _num_symbols);
         for(int s=0; s<_num_symbols; s++){
             Publish_Symbols[s] = compArray[s+1];
+            result += " " + Publish_Symbols[s];
         }
         zmq_ret = zmq_ret + ", '_data': {'symbol_count':" + IntegerToString(_num_symbols) + "}";
         Publish_MarketData = true;
@@ -691,7 +692,9 @@ void DWX_SetSymbolList(string& compArray[], string& zmq_ret) {
         Publish_MarketData = false;
         ArrayResize(Publish_Symbols, 1);
         zmq_ret = zmq_ret + ", '_data': {'symbol_count': 0}";
+        result += " NONE";
    }         
+   Print(result);
 }
 
 
@@ -702,12 +705,13 @@ void DWX_SetInstrumentList(string& compArray[], string& zmq_ret) {
     zmq_ret = zmq_ret + "'_action': 'TRACK_RATES'";
     
     // Format: TRACK_RATES|SYMBOL_1|TIMEFRAME_1|SYMBOL_2|TIMEFRAME_2|...|SYMBOL_N|TIMEFRAME_N
-      
+    string result = "Tracking RATES from";      
     int _num_instruments = (ArraySize(compArray) - 1)/2;
     if(_num_instruments > 0){
         ArrayResize(Publish_Instruments, _num_instruments);        
         for(int s=0; s<_num_instruments; s++){ 
             Publish_Instruments[s].setup(compArray[(2*s)+1], (ENUM_TIMEFRAMES)StrToInteger(compArray[(2*s)+2]));
+            result += " " + Publish_Instruments[s].name();
          }
         zmq_ret = zmq_ret + ", '_data': {'instrument_count':" + IntegerToString(_num_instruments) + "}";
         Publish_MarketRates = true;
@@ -716,7 +720,9 @@ void DWX_SetInstrumentList(string& compArray[], string& zmq_ret) {
         Publish_MarketRates = false;    
         ArrayResize(Publish_Instruments, 1);           
         zmq_ret = zmq_ret + ", '_data': {'instrument_count': 0}";
+        result += " NONE";
    }         
+   Print(result);
 }
 
 
