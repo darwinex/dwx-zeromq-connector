@@ -33,7 +33,7 @@ class DWX_ZeroMQ_Connector():
                  _PULL_PORT=32769,           # Port for Receiving responses
                  _SUB_PORT=32770,            # Port for Subscribing for prices
                  _delimiter=';',
-                 _verbose=False):           # String delimiter           
+                 _verbose=True):           # String delimiter           
     
         # Strategy Status (if this is False, ZeroMQ will not listen for data)
         self._ACTIVE = True
