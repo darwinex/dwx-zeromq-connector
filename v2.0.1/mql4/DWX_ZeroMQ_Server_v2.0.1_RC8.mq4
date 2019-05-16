@@ -2,6 +2,8 @@
 //|     DWX_ZeroMQ_Server_v2.0.1_RC8.mq4
 //|     @author: Darwinex Labs (www.darwinex.com)
 //|    
+//|     Last Updated: May 16, 2019
+//|
 //|     Copyright (c) 2017-2019, Darwinex. All rights reserved.
 //|    
 //|     Licensed under the BSD 3-Clause License, you may not use this file except 
@@ -80,25 +82,20 @@ int OnInit()
    // Send responses to PULL_PORT that client is listening on.
    Print("[PUSH] Binding MT4 Server to Socket on Port " + IntegerToString(PULL_PORT) + "..");
    pushSocket.bind(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PULL_PORT));
-   
    pushSocket.setSendHighWaterMark(1);
    pushSocket.setLinger(0);
    
    // Receive commands from PUSH_PORT that client is sending to.
    Print("[PULL] Binding MT4 Server to Socket on Port " + IntegerToString(PUSH_PORT) + "..");   
    pullSocket.bind(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PUSH_PORT));
-   
    pullSocket.setReceiveHighWaterMark(1);
-   
    pullSocket.setLinger(0);
    
-   if (Publish_MarketData == TRUE)
+   if (Publish_MarketData == true)
    {
       // Send new market data to PUB_PORT that client is subscribed to.
       Print("[PUB] Binding MT4 Server to Socket on Port " + IntegerToString(PUB_PORT) + "..");
       pubSocket.bind(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PUB_PORT));
-      pubSocket.setSendHighWaterMark(1);
-      pubSocket.setLinger(0);
    }
    
 //---
@@ -562,7 +559,7 @@ bool DWX_SetSLTP(int ticket, double _SL, double _TP, int _magic, int _type, doub
          return(true);
       } else {
          int error = GetLastError();
-         zmq_ret = zmq_ret + ", '_response': '" + IntegerToString(error) + "', '_response_value': '" + ErrorDescription(error) + "', '_sl_attempted': " + NormalizeDouble(OrderOpenPrice()-_SL*dir_flag*vpoint,vdigits) + ", '_tp_attempted': " + NormalizeDouble(OrderOpenPrice()+_TP*dir_flag*vpoint,vdigits);
+         zmq_ret = zmq_ret + ", '_response': '" + IntegerToString(error) + "', '_response_value': '" + ErrorDescription(error) + "', '_sl_attempted': " + DoubleToString(NormalizeDouble(OrderOpenPrice()-_SL*dir_flag*vpoint,vdigits)) + ", '_tp_attempted': " + DoubleToString(NormalizeDouble(OrderOpenPrice()+_TP*dir_flag*vpoint,vdigits));
    
          if(retries == 0) {
             RefreshRates();
