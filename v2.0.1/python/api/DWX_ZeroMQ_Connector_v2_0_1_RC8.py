@@ -4,6 +4,8 @@
     --
     @author: Darwinex Labs (www.darwinex.com)
     
+    Last Updated: May 16, 2019
+    
     Copyright (c) 2017-2019, Darwinex. All rights reserved.
     
     Licensed under the BSD 3-Clause License, you may not use this file except 
@@ -76,6 +78,7 @@ class DWX_ZeroMQ_Connector():
         print("[INIT] Listening for responses from METATRADER (PULL): " + str(self._PULL_PORT))
         
         # Connect SUB Socket to receive market data from MetaTrader
+        print("[INIT] Listening for market data from METATRADER (SUB): " + str(self._SUB_PORT))
         self._SUB_SOCKET.connect(self._URL + str(self._SUB_PORT))
         
         # Initialize POLL set and register PULL and SUB sockets
