@@ -13,7 +13,7 @@
 ---
 
 ## Introduction
-With this version update, some modifications have been added to both the Python and MQL4 scripts, to improve the overall capabilities provided by this project. All modifications have been deployed in subfolder **v2.0.1**.
+With this version update, some modifications have been added to both the Python and MQL4 scripts, to improve the overall capabilities provided by this project. All modifications have been deployed in subfolder **v2.0.2**.
 
 ## Price feed
 
@@ -59,19 +59,19 @@ This section describes changes to source code and newly added functionalities.
 
 ### **_TRACK_PRICES command_**
 
-This request is intended to change symbols configured in the Expert Advisor in runtime. So, the request is formed by the command and a list of symbols that must be managed by the Expert Advisor:
+This request is intended to change symbols configured in the Expert Advisor at runtime. The request is formed using a command and a list of symbols that must be managed by the Expert Advisor:
 
 ```cpp
 TRACK_PRICES;SYMBOL_1;SYMBOL_2;SYMBOL_3;.....;SYMBOL_N
 ```
 
-_Example 1: to start receiving bid-ask prices from EURUSD, GDAXI and EURGBP, clients can send this PUSH request to the Server side:_
+_Example 1: to start receiving bid-ask prices for EURUSD, GDAXI and EURGBP, clients can send this PUSH request to the Server:_
 
 ```cpp
 TRACK_PRICES;EURUSD;GDAXI;EURGBP
 ```
 
-_Example 2: At any given time, clients can cancel EURUSD prices feed, updating that list with this new PUSH request:_
+_Example 2: At any given time, clients can cancel e.g. the EURUSD price feed, updating that list with this new PUSH request:_
 
 ```cpp
 TRACK_PRICES;GDAXI;EURGBP
@@ -83,13 +83,13 @@ _Example 3: Also, clients can clears the symbol list managed by the EA, sending 
 TRACK_PRICES
 ```
 
-In order to provide this new functionality a new method is added to the ```ZMQ-Connector```:
+To enable this new functionality, a new method was added:
 
 ```cpp
 def _DWX_MTX_SEND_TRACKPRICES_REQUEST_(self,_symbols=['EURUSD'])
 ```
 
-On the other hand, Expert Advisor is modified, to accept this new command request, provide an associated response and update the list of symbols managed by itself. The response to this request <```TRACK_PRICES;GDAXI;EURGBP```> is as follows:
+The MQL4 Server EA was also modified to accept this new command request, to provide an associated response and update the list of symbols managed by itself. The response to this request <```TRACK_PRICES;GDAXI;EURGBP```> is as follows:
 
 ```cpp
 {
@@ -102,7 +102,7 @@ On the other hand, Expert Advisor is modified, to accept this new command reques
 
 ### **_TRACK_RATES command_**
 
-This request is intended to change instruments configured in the Expert Advisor in runtime, so that clients could get subscribed to rate prices feeds. 
+This request is intended to change instruments configured in the Expert Advisor at runtime, so that clients could get subscribed to rate price feeds. 
 
 It is identified by the command: ```TRACK_RATES``` followed by a list of symbols and timeframes:
 
@@ -110,7 +110,7 @@ It is identified by the command: ```TRACK_RATES``` followed by a list of symbols
 TRACK_RATES;SYMBOL_1;TIMEFRAME_1;SYMBOL_2;TIMEFRAME_2;.....;SYMBOL_N;TIMEFRAME_N
 ```
 
-_Example 1: to start receiving Rates(time-open-high-low-close-tickvol-spread-realvol) from EURUSD at timeframe M1, and from GDAXI at timeframe H4, clients can send this PUSH request to the Server side:_
+_Example 1: to start receiving Rates(time-open-high-low-close-tickvol-spread-realvol) from EURUSD at timeframe M1, and from GDAXI at timeframe H4, clients can send this PUSH request to the Server:_
 
 ```cpp
 TRACK_RATES;EURUSD;1;GDAXI;240
@@ -118,13 +118,13 @@ TRACK_RATES;EURUSD;1;GDAXI;240
 
 _Note: H4 = 4hours = 4*60mins = 240mins (timeframe = 240)_
 
-_Example 2: instrument list can be changed at any given time. Also can be cleared by a command without symbols-timeframes:_
+_Example 2: instrument list can be changed at any given time. It can also be cleared by a command without symbols-timeframes:_
 
 ```cpp
 TRACK_RATES
 ```
 
-In order to provide this new functionality a new method is added to the ```ZMQ-Connector```:
+To enable this new functionality, a new method was added:
 
 ```cpp
 def _DWX_MTX_SEND_TRACKRATES_REQUEST_(self,_instruments=[('EURUSD_M1','EURUSD',1)]):
