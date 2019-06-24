@@ -1,6 +1,6 @@
 # DWX ZeroMQ Connector  { Python 3 to MetaTrader 4 }
 
-# Pull-request description for version: 2.0.1 [(here)](https://github.com/raulMrello/dwx-zeromq-connector)
+# Changes in v2.0.2 compared to v2.0.1:
 
 ## Table of Contents
 * [Introduction](#introduction)
