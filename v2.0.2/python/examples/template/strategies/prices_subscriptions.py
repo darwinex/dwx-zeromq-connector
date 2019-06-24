@@ -4,7 +4,7 @@
 """
     prices_subscriptions.py
     
-    An example using the Darwinex ZeroMQ Connector for Python 3 and MetaTrader 4  PULL REQUEST
+    An example of using the Darwinex ZeroMQ Connector for Python 3 and MetaTrader 4 PULL REQUEST
     for v2.0.1 in which a Client modify symbol list configured in the EA to get bid-ask prices 
     from EURUSD and GDAXI. When it receives 10 prices from each feed, it will cancel GDAXI feed 
     and only receives 10 more prices from EURUSD. 
