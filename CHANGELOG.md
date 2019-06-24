@@ -42,20 +42,20 @@ The modification proposed in v2.0.2, allowed clients to modify instruments confi
 ---
 ## New Data Notifications in Real Time
 
-In current version, data received from Server comes through PULL or SUB ports.
+In version 2.0.1, data received from the Server came through PULL or SUB ports.
 
-Data feeds comes through SUB port and are registered in the client's dictionary ```self._Market_Data_DB```. So, clients can check this dictionary periodically for new received data.
+Data feeds came through SUB ports and were registered in the client's dictionary ```self._Market_Data_DB```. So, clients could check this dictionary periodically for new received data.
 
-The proposed modification here, implies a change in ZMQ-Connector code. Now a data processor is registered in the Connector, acting as an event handler. Then, when new data is received through the PULL port, a callback is invoked ```dataHandler.onPullData(pull_port_data)```.
+In v2.0.2 implements a change in the ZMQ-Connector code. Now a data processor is registered in the Connector, acting as an event handler. When new data is received through the PULL port, a callback is invoked ```dataHandler.onPullData(pull_port_data)```.
 
-In the same way, data received through the SUB port is also notified through the callback ```dataHandler.onSubData(sub_port_data)```.
+Similarly, when data is received through the SUB port,  a callback ```dataHandler.onSubData(sub_port_data)``` is invoked.
 
-With the addition of these callbacks, now clients can execute in a more efficient way, via this event-driven framework.
+With the addition of these callbacks, clients may now execute in a more efficient way, via this event-driven framework.
 
 ---
 ## List of changes
 
-Along this section I describe source code changes and new functionalities added.
+This section describes changes to source code and newly added functionalities.
 
 ### **_TRACK_PRICES command_**
 
