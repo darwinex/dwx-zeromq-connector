@@ -4,21 +4,20 @@
 """
     rates_historic.py
     
-    An example using the Darwinex ZeroMQ Connector for Python 3 and MetaTrader 4  PULL REQUEST
-    for v2.0.1 in which a Client request a rate historic from EURGBP Daily from 2019.01.04 to
+    An example using the Darwinex ZeroMQ Connector for Python 3 and MetaTrader 4 PULL REQUEST
+    for v2.0.1 in which a Client requests rate history from EURGBP Daily from 2019.01.04 to
     to 2019.01.14.
 
 
     -------------------
-    Rates historic:
+    Rates history:
     -------------------
     Through commmand HIST, this client can select multiple rates from an INSTRUMENT (symbol, timeframe).
     For example, to receive rates from instruments EURUSD(M1), between two dates, it will send this 
     command to the Server, through its PUSH channel:
 
     "HIST;EURUSD;1;2019.01.04 00:00:00;2019.01.14 00:00:00"
-
-          
+      
     --
     
     @author: [raulMrello](https://www.linkedin.com/in/raul-martin-19254530/)
