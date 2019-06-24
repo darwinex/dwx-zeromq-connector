@@ -130,9 +130,9 @@ To enable this new functionality, a new method was added:
 def _DWX_MTX_SEND_TRACKRATES_REQUEST_(self,_instruments=[('EURUSD_M1','EURUSD',1)]):
 ```  
 
-_Note: Instruments are tuples of 3 parameters (name, symbol, timeframe). In this case, name is formed with this format: ```SYMBOL_TIMEFRAME```, where ```TIMEFRAME``` holds values associated with standard timeframes: ```M1,M5,M15,M30,H1,H4,D1,W1,MN1```_
+_Note: Instruments are tuples of 3 parameters (name, symbol, timeframe). In this case, name is formatted as: ```SYMBOL_TIMEFRAME```, where ```TIMEFRAME``` holds values from one of the standard MQL4 timeframes: ```M1,M5,M15,M30,H1,H4,D1,W1,MN1```_
 
-As previously, Expert Advisor is modified to process this new request properly. The response to this request <```TRACK_RATES;GDAXI;1```> is as follows:
+The Expert Advisor was modified to process this new request properly. The response to this request <```TRACK_RATES;GDAXI;1```> is as follows:
 
 ```cpp
 {
@@ -166,7 +166,7 @@ This request is intended to request a historic of rates from an specific instrum
 HIST;SYMBOL;TIMEFRAME;START_TIME;END_TIME
 ```
 
-This functionality is added to the ```ZMQ-Connector``` by this new method:
+This functionality was added as a new method:
 
 ```cpp
 def _DWX_MTX_SEND_MARKETHIST_REQUEST_(self,
@@ -176,13 +176,13 @@ def _DWX_MTX_SEND_MARKETHIST_REQUEST_(self,
                                  _end=Timestamp.now().strftime('%Y.%m.%d %H:%M:00')):
 ```
 
-Also, Expert Advisor is modified to provide the requested historic data.
+Additionally, the Expert Advisor was modified to provide the requested historic data.
 
 ### **_Received data handlers_**
 
-In this case, ```ZMQ-Connector``` is modified to accept the registration of two event handlers, that will be invoked when new data is received through the PULL or the SUB ports.
+The Python script was modified to accept the registration of two event handlers, that will be invoked when new data is received through the PULL or SUB ports.
 
-Now, the constructor of this class is modified as follows:
+To enable this, the constructor of the Python class ```DWX_ZeroMQ_Connector``` in v2.0.2 was modified as follows:
 
 ```cpp
 class DWX_ZeroMQ_Connector():
@@ -204,11 +204,11 @@ class DWX_ZeroMQ_Connector():
 ```
 
 
-- ```_pulldata_handlers```: is a list of handlers that will be notified when new data arrives through the PULL port, calling to the public method ```handler.onPullData(new_data)```.
+- ```_pulldata_handlers```: is a list of handlers that will be notified when new data arrives through the PULL port, calling the public method ```handler.onPullData(new_data)```.
 
-- ```_subdata_handlers```: is a list of handlers that will be notified when new data arrives through the SUB port, calling to the public method ```handler.onSubData(new_data)```.
+- ```_subdata_handlers```: is a list of handlers that will be notified when new data arrives through the SUB port, calling the public method ```handler.onSubData(new_data)```.
 
-A common implementation of a handler that can get notifications from both sockets could be this one:
+An example implementation of a handler that can get notifications from both sockets could be:
 
 ```cpp
 class Handler():
@@ -221,8 +221,7 @@ class Handler():
         print('Received new data on SUB socket ={}'.format(new_data))   
 ```
 
-And then a Client, could start ZMQ connector installing these handlers, in this way:
-
+And then a Client, could start the ZMQ connector installing these handlers, as follows:
 
 ```cpp
 hnd = Handler()
@@ -231,9 +230,9 @@ zmq = DWX_ZeroMQ_Connector(_pulldata_handlers=[hnd], _subdata_handlers=[hnd])
 
 ### **_Rate prices streaming_**
 
-As said before, rates are also streamed through the SUB port when a client is subscribed to them. In this case, they are also streamed into ```_zmq._Market_Data_DB``` dictionary using the instrument's name.
+As stated before, rates are also streamed through the SUB port when a client is subscribed to them. In this case, they are also streamed into the ```_zmq._Market_Data_DB``` dictionary using the instrument's name.
 
-So, for a rate stream from instrument ```EURUSD_H1```, data inserted into dict will be in this format:
+In similar fashion, for a rate stream for instrument ```EURUSD_H1```, data inserted into the dictionary will be formatted as follows:
 
 ```cpp
 Output: 
@@ -248,9 +247,9 @@ Output:
 ---
 ## Examples
 
-In folder [v2.0.2/python/examples/template/strategies](https://github.com/raulMrello/dwx-zeromq-connector/tree/release/v2.0.2/v2.0.2/python/examples/template/strategies) I provide different examples, showing these new features:
+In folder ```/v2.0.2/python/examples/template/strategies``` we've provided a few different examples, showing these new features:
 
-- [prices_subscriptions.py](https://github.com/raulMrello/dwx-zeromq-connector/blob/release/v2.0.2/v2.0.2/python/examples/template/strategies/prices_subscriptions.py): in this example a Client modify symbol list configured in the EA to get bid-ask prices from EURUSD and GDAXI. When it receives 10 prices from each feed, it will cancel GDAXI feed and only receives 10 more prices from EURUSD. Once received those next 10 prices, it cancels all prices feeds and finishes.
+- [prices_subscriptions.py](https://github.com/darwinex/dwx-zeromq-connector/v2.0.2/python/examples/template/strategies/prices_subscriptions.py): in this example a Client modifies a symbol list configured in the EA to get bid-ask prices from EURUSD and GDAXI. When it receives 10 prices from each feed, it will cancel the GDAXI feed and only receives 10 more prices from EURUSD. Once those next 10 prices are received, it cancels all price feeds and terminates.
 
 ```cpp
 OUTPUT:
@@ -309,7 +308,7 @@ Bye!!!
 ```
 
 
-- [rates_subscriptions.py](https://github.com/raulMrello/dwx-zeromq-connector/blob/release/v2.0.2/v2.0.2/python/examples/template/strategies/rates_subscriptions.py): in this example a Client modify instrument list configured in the EA to get rate prices from EURUSD at M1 and GDAXI at M5. After receiving 5 rates from EURUSD_M1 it cancels its feed and waits 2 rates from GDAXI. At this point it cancels all rate feeds and waits for 2 minutes. Then it prints ```_zmq._Market_Data_DB``` dictionary and finishes.
+- [rates_subscriptions.py](https://github.com/darwinex/dwx-zeromq-connector/v2.0.2/python/examples/template/strategies/rates_subscriptions.py): in this example a Client modifies the instrument list configured in the EA to get rate prices for EURUSD in M1 and GDAXI in M5 precision. After receiving 5 rates for EURUSD_M1 it cancels its feed and waits for another 2 rates from GDAXI. At this point it cancels all rate feeds and waits for 2 minutes. Then it prints the contents of the ```_zmq._Market_Data_DB``` dictionary and finishes.
 
 ```cpp
 OUTPUT:
