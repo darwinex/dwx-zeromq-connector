@@ -13,11 +13,11 @@
 ---
 
 ## Introduction
-With this version update, some modifications have been added to both the Python and MQL4 scripts, to improve the overall capabilities provided by this project. All modifications have been deployed in subfolder **v2.0.2**.
+With this version update, kindly contributed by the amazing [Raul](https://github.com/raulMrello), several modifications have been made to both the Python and MQL4 scripts, to improve the overall capabilities provided by this project. All modifications have been deployed in subfolder **v2.0.2**.
 
 ## Price feed
 
-In current version (v2.0.1), clients could subscribe to price feeds (```bid,ask``` prices) for different symbols. Those symbols were required to be previouly configured in the Expert Advisor.
+In  version v2.0.1, clients could subscribe to price feeds (```bid,ask``` prices) for different symbols. Those symbols were required to be previouly configured in the Expert Advisor.
 
 However, if clients (in runtime) did a new subscription to other symbols (not configured previously in the Expert Advisor), their price feed could not be updated, because those symbols were not configured yet in the EA.
 
