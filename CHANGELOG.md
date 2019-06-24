@@ -4,10 +4,10 @@
 
 ## Table of Contents
 * [Introduction](#introduction)
-* [Prices feed](#prices-feed)
-* [Historic of Rates](#historic-of-rates)
+* [Price feeds](#price-feed)
+* [Rates History](#rates-history)
 * [Rates feed](#rates-feed)
-* [Notifications of new received data](#notifications-of-new-received-data)
+* [New Data Notifications in Real Time](#new-data-notifications-in-real-time)
 * [List of changes](#list-of-changes)
 * [Examples](#examples)
 ---
@@ -24,23 +24,23 @@ However, if clients (in runtime) did a new subscription to other symbols (not co
 The modification proposed in v2.0.2 by the pull-request author Raul, required a modification be made to both the Expert Advisor code and ZMQ-Connector code, whereby symbols could be configured in the Expert Advisor (runing as a Server in MT4) and hence, enabling clients to change subscriptions to their price feeds during at any time.
 
 ---
-## Historic of Rates
+## Rates History
 
-In current version, clients can request historic data from specific instruments (symbol & timeframe), and receive ```CLOSE``` prices for a period in time.
+In version 2.0.1, clients could request historical prices for specific instruments (symbol & timeframe), and receive ```CLOSE``` prices for a period in time.
 
-Nevertheless, there isn't a service to get ```RATE``` prices from those instruments, understanding a ```RATE``` as a data stream formed by these values: ```TIME,OPEN,HIGH,LOW,CLOSE,TICKVOL,SPREAD,REALVOL```.
+However, there wasn't a service to get ```RATE``` prices for those instruments, where a ```RATE``` as a data stream formed by these values: ```TIME,OPEN,HIGH,LOW,CLOSE,TICKVOL,SPREAD,REALVOL```.
 
-This modification includes one new service providing this functionality.
+This has been implemented in v2.0.2, and includes a new service providing this functionality.
 
 ---
 ## Rates feed
 
-In current version, there is no way to get rates feed from specific instruments. 
+In version 2.0.1, there was no way to get a rates feed for specific instruments. 
 
-The modification proposed here, allows that clients can modify instruments configured in the Expert Advisor and hence get subscribed to their rates feed during runtime.
+The modification proposed in v2.0.2, allowed clients to modify instruments configured in the Expert Advisor and hence get subscribed to their rates feed during runtime.
 
 ---
-## Notifications of new received data
+## New Data Notifications in Real Time
 
 In current version, data received from Server comes through PULL or SUB ports.
 
