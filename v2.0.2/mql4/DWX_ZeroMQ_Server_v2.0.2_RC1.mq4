@@ -1,5 +1,5 @@
 //+--------------------------------------------------------------+
-//|     DWX_ZeroMQ_Server_v2.0.1_RC8.mq4
+//|     DWX_ZeroMQ_Server_v2.0.2_RC8.mq4
 //|     @author: Darwinex Labs (www.darwinex.com)
 //|    
 //|     Copyright (c) 2017-2019, Darwinex. All rights reserved.
@@ -12,7 +12,7 @@
 //+--------------------------------------------------------------+
 #property copyright "Copyright 2017-2019, Darwinex Labs."
 #property link      "https://www.darwinex.com/"
-#property version   "2.02"
+#property version   "2.0.2"
 #property strict
 
 // Required: MQL-ZMQ from https://github.com/dingmaotu/mql-zmq
@@ -44,15 +44,6 @@ bool Publish_MarketRates = false;
 // Dynamic array initialized at OnInit(). Can be updated by TRACK_PRICES requests from client peers
 string Publish_Symbols[];
 
-/*
-string Publish_Symbols[28] = {
-   "EURUSD","EURGBP","EURAUD","EURNZD","EURJPY","EURCHF","EURCAD",
-   "GBPUSD","AUDUSD","NZDUSD","USDJPY","USDCHF","USDCAD","GBPAUD",
-   "GBPNZD","GBPJPY","GBPCHF","GBPCAD","AUDJPY","CHFJPY","CADJPY",
-   "AUDNZD","AUDCHF","AUDCAD","NZDJPY","NZDCHF","NZDCAD","CADCHF"
-};
-*/
-
 // CREATE ZeroMQ Context
 Context context(PROJECT_NAME);
 
@@ -68,9 +59,6 @@ Socket pubSocket(context, ZMQ_PUB);
 // VARIABLES FOR LATER
 uchar _data[];
 ZmqMsg request;
-
-
-
 
 /**
  * Class definition for an specific instrument: the tuple (symbol,timeframe)
@@ -620,7 +608,6 @@ void DWX_GetData(string& compArray[], string& zmq_ret) {
          
 }
 
-
 //+------------------------------------------------------------------+
 // Get historic for request datetime range
 void DWX_GetHist(string& compArray[], string& zmq_ret) {
@@ -754,13 +741,6 @@ void InformPullClient(Socket& pSocket, string message) {
    
 }
 
-/*
- ############################################################################
- ############################################################################
- ############################################################################
-*/
-
-
 //+------------------------------------------------------------------+
 // OPEN NEW ORDER
 int DWX_OpenOrder(string _symbol, int _type, double _lots, double _price, double _SL, double _TP, string _comment, int _magic, string &zmq_ret) {
@@ -834,7 +814,6 @@ int DWX_OpenOrder(string _symbol, int _type, double _lots, double _price, double
    return(ticket);
 }
 
-
 //+------------------------------------------------------------------+
 // SET SL/TP
 bool DWX_SetSLTP(int ticket, double _SL, double _TP, int _magic, int _type, double _price, string _symbol, int retries, string &zmq_ret) {
@@ -870,7 +849,6 @@ bool DWX_SetSLTP(int ticket, double _SL, double _TP, int _magic, int _type, doub
    return(false);
 }
 
-
 //+------------------------------------------------------------------+
 // CLOSE AT MARKET
 bool DWX_CloseAtMarket(double size, string &zmq_ret) {
@@ -896,7 +874,6 @@ bool DWX_CloseAtMarket(double size, string &zmq_ret) {
 
    return(false);
 }
-
 
 //+------------------------------------------------------------------+
 // CLOSE PARTIAL SIZE
@@ -940,7 +917,6 @@ bool DWX_ClosePartial(double size, string &zmq_ret, int ticket = 0) {
       return(close_ret);
    }   
 }
-
 
 //+------------------------------------------------------------------+
 // CLOSE ORDER (by Magic Number)
@@ -1024,7 +1000,6 @@ void DWX_CloseOrder_Ticket(int _ticket, string &zmq_ret) {
 
 }
 
-
 //+------------------------------------------------------------------+
 // CLOSE ALL ORDERS
 void DWX_CloseAllOrders(string &zmq_ret) {
@@ -1075,7 +1050,6 @@ void DWX_CloseAllOrders(string &zmq_ret) {
 
 }
 
-
 //+------------------------------------------------------------------+
 // GET OPEN ORDERS
 void DWX_GetOpenOrders(string &zmq_ret) {
@@ -1103,7 +1077,6 @@ void DWX_GetOpenOrders(string &zmq_ret) {
    zmq_ret = zmq_ret + "}";
 
 }
-
 
 //+------------------------------------------------------------------+
 // CHECK IF TRADE IS ALLOWED
@@ -1140,7 +1113,6 @@ int DWX_IsTradeAllowed(int MaxWaiting_sec, string &zmq_ret) {
     
     return(1);
 }
-
 
 //+------------------------------------------------------------------+
 string ErrorDescription(int error_code)
@@ -1266,8 +1238,4 @@ double DWX_GetBid(string symbol) {
       return(MarketInfo(symbol,MODE_BID));
    }
 }
-//+------------------------------------------------------------------+
-
-
-
 //+------------------------------------------------------------------+
