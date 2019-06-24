@@ -13,20 +13,15 @@
 ---
 
 ## Introduction
-Playing with this project during some time, I miss some important features both on the Client side (ZMQ-Connector) and on the Server side (Expert Advisor). 
+With this version update, some modifications have been added to both the Python and MQL4 scripts, to improve the overall capabilities provided by this project. All modifications have been deployed in subfolder **v2.0.1**.
 
-With this pull request, some modifications have been added to both sides, to improve the capabilities provided by this project. All modifications have been deployed in subfolder [v2.0.2](https://github.com/raulMrello/dwx-zeromq-connector/tree/release/v2.0.2/v2.0.2) developed on branch: _**release/v2.0.2**_
+## Price feed
 
-Along next sections, I'll explain them in more detail.
+In current version (v2.0.1), clients could subscribe to price feeds (```bid,ask``` prices) for different symbols. Those symbols were required to be previouly configured in the Expert Advisor.
 
----
-## Prices feed
+However, if clients (in runtime) did a new subscription to other symbols (not configured previously in the Expert Advisor), their price feed could not be updated, because those symbols were not configured yet in the EA.
 
-In current version (v2.0.1), clients can subscribe to prices feeds (```bid,ask``` prices) from different symbols. Those symbols must be previouly configured in the Expert Advisor.
-
-However, if clients (in runtime) do a new subscription to other symbols (not configured previously in the Expert Advisor), their prices feed never will be received, because those symbols are not configured yet in the EA.
-
-The modification proposed here, implies a modification done in Expert Advisor code and ZMQ-Connector code, through which symbols can be configured in the Expert Advisor (runing on Server side) and hence, clients can change subscriptions to their prices feed during runtime.
+The modification proposed in v2.0.2 by the pull-request author Raul, required a modification be made to both the Expert Advisor code and ZMQ-Connector code, whereby symbols could be configured in the Expert Advisor (runing as a Server in MT4) and hence, enabling clients to change subscriptions to their price feeds during at any time.
 
 ---
 ## Historic of Rates
