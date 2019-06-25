@@ -249,7 +249,7 @@ Output:
 
 In folder ```/v2.0.2/python/examples/template/strategies``` we've provided a few different examples, showing these new features:
 
-- [prices_subscriptions.py](https://github.com/darwinex/dwx-zeromq-connector/v2.0.2/python/examples/template/strategies/prices_subscriptions.py): in this example a Client modifies a symbol list configured in the EA to get bid-ask prices from EURUSD and GDAXI. When it receives 10 prices from each feed, it will cancel the GDAXI feed and only receives 10 more prices from EURUSD. Once those next 10 prices are received, it cancels all price feeds and terminates.
+- [prices_subscriptions.py](https://github.com/darwinex/dwx-zeromq-connector/blob/master/v2.0.2/python/examples/template/strategies/prices_subscriptions.py): in this example a Client modifies a symbol list configured in the EA to get bid-ask prices from EURUSD and GDAXI. When it receives 10 prices from each feed, it will cancel the GDAXI feed and only receives 10 more prices from EURUSD. Once those next 10 prices are received, it cancels all price feeds and terminates.
 
 ```cpp
 OUTPUT:
@@ -308,7 +308,7 @@ Bye!!!
 ```
 
 
-- [rates_subscriptions.py](https://github.com/darwinex/dwx-zeromq-connector/v2.0.2/python/examples/template/strategies/rates_subscriptions.py): in this example a Client modifies the instrument list configured in the EA to get rate prices for EURUSD in M1 and GDAXI in M5 precision. After receiving 5 rates for EURUSD_M1 it cancels its feed and waits for another 2 rates from GDAXI. At this point it cancels all rate feeds and waits for 2 minutes. Then it prints the contents of the ```_zmq._Market_Data_DB``` dictionary and finishes.
+- [rates_subscriptions.py](https://github.com/darwinex/dwx-zeromq-connector/blob/master/v2.0.2/python/examples/template/strategies/rates_subscriptions.py): in this example a Client modifies the instrument list configured in the EA to get rate prices for EURUSD in M1 and GDAXI in M5 precision. After receiving 5 rates for EURUSD_M1 it cancels its feed and waits for another 2 rates from GDAXI. At this point it cancels all rate feeds and waits for 2 minutes. Then it prints the contents of the ```_zmq._Market_Data_DB``` dictionary and finishes.
 
 ```cpp
 OUTPUT:
@@ -358,7 +358,7 @@ self._Market_Data_DB = {
 Bye!!!
 ```
 
-- [rates_historic.py](https://github.com/raulMrello/dwx-zeromq-connector/blob/release/v2.0.2/v2.0.2/python/examples/template/strategies/rates_historic.py): in this example a Client request a rate historic from EURGBP Daily from the last 5 days. 
+- [rates_historic.py](https://github.com/darwinex/dwx-zeromq-connector/blob/master/v2.0.2/python/examples/template/strategies/rates_historic.py): in this example a Client request a rate historic from EURGBP Daily from the last 5 days. 
 
 ```cpp
 OUTPUT:
