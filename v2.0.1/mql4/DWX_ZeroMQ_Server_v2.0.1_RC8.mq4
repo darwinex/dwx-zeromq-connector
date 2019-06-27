@@ -602,44 +602,37 @@ bool DWX_CloseAtMarket(double size, string &zmq_ret) {
 
 // CLOSE PARTIAL SIZE
 bool DWX_ClosePartial(double size, string &zmq_ret, int ticket = 0) {
-
-   RefreshRates();
-   double priceCP;
    
    bool close_ret = False;
    
-   if(OrderType() != OP_BUY && OrderType() != OP_SELL) {
-     return(true);
-   }
-
-   if(OrderType() == OP_BUY) {
-      priceCP = DWX_GetBid(OrderSymbol());
-   } else {
-      priceCP = DWX_GetAsk(OrderSymbol());
-   }
-
-   // If the function is called directly, setup init() JSON here.
+   // If the function is called directly, setup init() JSON here and get OrderSelect.
    if(ticket != 0) {
       zmq_ret = zmq_ret + "'_action': 'CLOSE', '_ticket': " + IntegerToString(ticket);
       zmq_ret = zmq_ret + ", '_response': 'CLOSE_PARTIAL'";
+      int tmpRet = OrderSelect(ticket, SELECT_BY_TICKET);
    }
    
-   int local_ticket = 0;
-   
-   if (ticket != 0)
-      local_ticket = ticket;
-   else
-      local_ticket = OrderTicket();
+   RefreshRates();
+   double priceCP;
+
+   if(OrderType() == OP_BUY) {
+      priceCP = DWX_GetBid(OrderSymbol());
+   } else if (OrderType() == OP_SELL){
+      priceCP = DWX_GetAsk(OrderSymbol());
+   } else {
+      return(true);
+   }
+ 
+   ticket = OrderTicket();
    
    if(size < 0.01 || size > OrderLots()) {
-      close_ret = OrderClose(local_ticket, OrderLots(), priceCP, MaximumSlippage);
-      zmq_ret = zmq_ret + ", '_close_price': " + DoubleToString(priceCP) + ", '_close_lots': " + DoubleToString(OrderLots());
-      return(close_ret);
-   } else {
-      close_ret = OrderClose(local_ticket, size, priceCP, MaximumSlippage);
-      zmq_ret = zmq_ret + ", '_close_price': " + DoubleToString(priceCP) + ", '_close_lots': " + DoubleToString(size);
-      return(close_ret);
-   }   
+      size = OrderLots();
+   }
+   close_ret = OrderClose(ticket, size, priceCP, MaximumSlippage);
+   Print(close_ret);
+   zmq_ret = zmq_ret + ", '_close_price': " + DoubleToString(priceCP) + ", '_close_lots': " + DoubleToString(size);
+   return(close_ret);
+      
 }
 
 // CLOSE ORDER (by Magic Number)
