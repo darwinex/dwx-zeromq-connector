@@ -14,11 +14,13 @@
 ## Introduction
 In this project, we present a technique employing ZeroMQ (an Open Source, Asynchronous Messaging Library and Concurrency Framework) for building a basic – but easily extensible – high performance bridge between external (non-MQL) programming languages and MetaTrader 4.
 
-### IMPORTANT NOTE 1: Please note that we cannot provide support for Python or MQL as programming languages themselves. Therefore, if you are new to Python and MQL, incorporating the project into your specific algorithmic trading environment will require some additional work on your part (i.e. enough Python experience to integrate the Bridge into your environment -> it is assumed that users of the Bridge are self-sufficient in Python).
+### IMPORTANT NOTES - PLEASE READ:
 
-### IMPORTANT NOTE 2: Any code provided and/or referenced in this repository is NOT meant to be used "as-is". Users must treat all code as educational content that requires modification / incorporation into existing works, as per their individual requirements.
+1. Please note that we cannot provide support for Python or MQL as programming languages themselves. Therefore, if you are new to Python and MQL, incorporating the project into your specific algorithmic trading environment will require some additional work on your part (i.e. enough Python experience to integrate the Bridge into your environment -> it is assumed that users of the Bridge are self-sufficient in Python).
 
-### IMPORTANT NOTE 3: We have drafted as detailed a set of steps as possible in our project README, but cannot cover all the dependencies as they are independent projects on their own that programmers need to account for / follow / keep up to speed with when considering using the DWX ZeroMQ Connector.
+1. Any code provided and/or referenced in this repository is NOT meant to be used "as-is". Users must treat all code as educational content that requires modification / incorporation into existing works, as per their individual requirements.
+
+1. We have drafted as detailed a set of steps as possible in our project README, but cannot cover all the dependencies as they are independent projects on their own that programmers need to account for / follow / keep up to speed with when considering using the DWX ZeroMQ Connector.
 	
 **Reasons for writing this post:**
 
