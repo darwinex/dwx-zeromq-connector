@@ -29,7 +29,11 @@ In this project, we present a technique employing ZeroMQ (an Open Source, Asynch
 
 1. Please DO NOT run this code in Jupyter or IPython Notebooks.
 
-1. The project's dependencies require **MS VC++ Libraries**. Without these installed, you are likely to run into **"Resource Timeout" errors.**
+1. The project's dependencies require **MS VC++ Libraries**. Without these installed, you are likely to run into **"Resource Timeout" errors.** The DLLs in the dependency projects (mql-zmq, libzmq, libsodium) require that you have the **latest Visual C++ runtime (2015) libraries already installed.**
+
+1. This project has not been tested on emulated environments (e.g. WINE, VMWare, etc).
+
+1. This project is intended for use solely in Windows 10 environments, at the present time.
 	
 **Reasons for writing this post:**
 
