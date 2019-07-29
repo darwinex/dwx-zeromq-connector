@@ -24,6 +24,12 @@ In this project, we present a technique employing ZeroMQ (an Open Source, Asynch
 1. Any code provided and/or referenced in this repository is NOT meant to be used "as-is". Users must treat all code as educational content that requires modification / incorporation into existing works, as per their individual requirements.
 
 1. We have drafted as detailed a set of steps as possible in our project README, but cannot cover all the dependencies as they are independent projects on their own that programmers need to account for / follow / keep up to speed with when considering using the DWX ZeroMQ Connector.
+
+1. This project and all accompanying source code should be run standalone (i.g. via a Python or IPython console, or batch process).
+
+1. Please DO NOT run this code in Jupyter or IPython Notebooks.
+
+1. The project's dependencies require **MS VC++ Libraries**. Without these installed, you are likely to run into **"Resource Timeout" errors.**
 	
 **Reasons for writing this post:**
 
