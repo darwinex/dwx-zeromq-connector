@@ -2,7 +2,7 @@
 //|     DWX_ZeroMQ_Server_v2.0.1_RC8.mq4
 //|     @author: Darwinex Labs (www.darwinex.com)
 //|    
-//|     Last Updated: May 16, 2019
+//|     Last Updated: July 29, 2019
 //|
 //|     Copyright (c) 2017-2019, Darwinex. All rights reserved.
 //|    
@@ -135,17 +135,22 @@ void OnTick()
    /*
       Use this OnTick() function to send market data to subscribed client.
    */
-   if(!IsStopped() && Publish_MarketData == true)
+   
+   if(CheckServerStatus() == true)
    {
-      for(int s = 0; s < ArraySize(Publish_Symbols); s++)
+      // if(!IsStopped() && Publish_MarketData == true)
+      if(Publish_MarketData == true)
       {
-         // Python clients can subscribe to a price feed by setting
-         // socket options to the symbol name. For example:
-         
-         string _tick = GetBidAsk(Publish_Symbols[s]);
-         Print("Sending " + Publish_Symbols[s] + " " + _tick + " to PUB Socket");
-         ZmqMsg reply(StringFormat("%s %s", Publish_Symbols[s], _tick));
-         pubSocket.send(reply, true);
+         for(int s = 0; s < ArraySize(Publish_Symbols); s++)
+         {
+            // Python clients can subscribe to a price feed by setting
+            // socket options to the symbol name. For example:
+            
+            string _tick = GetBidAsk(Publish_Symbols[s]);
+            Print("Sending " + Publish_Symbols[s] + " " + _tick + " to PUB Socket");
+            ZmqMsg reply(StringFormat("%s %s", Publish_Symbols[s], _tick));
+            pubSocket.send(reply, true);
+         }
       }
    }
 }
@@ -160,23 +165,25 @@ void OnTimer()
    /*
       Use this OnTimer() function to get and respond to commands
    */
-   
-   // Get client's response, but don't block.
-   pullSocket.recv(request, true);
-   
-   if (request.size() > 0)
+   if(CheckServerStatus() == true)
    {
-      // Wait 
-      // pullSocket.recv(request,false);
+      // Get client's response, but don't block.
+      pullSocket.recv(request, true);
       
-      // MessageHandler() should go here.   
-      ZmqMsg reply = MessageHandler(request);
-      
-      // Send response, and block
-      // pushSocket.send(reply);
-      
-      // Send response, but don't block
-      pushSocket.send(reply, true);
+      if (request.size() > 0)
+      {
+         // Wait 
+         // pullSocket.recv(request,false);
+         
+         // MessageHandler() should go here.   
+         ZmqMsg reply = MessageHandler(request);
+         
+         // Send response, and block
+         // pushSocket.send(reply);
+         
+         // Send response, but don't block
+         pushSocket.send(reply, true);
+      }
    }
 }
 //+------------------------------------------------------------------+
@@ -195,6 +202,7 @@ ZmqMsg MessageHandler(ZmqMsg &_request) {
       ArrayResize(_data, _request.size());
       _request.getData(_data);
       string dataStr = CharArrayToString(_data);
+      Print(dataStr);
       
       // Process data
       ParseZmqMessage(dataStr, components);
@@ -282,101 +290,148 @@ void InterpretZmqMessage(Socket &pSocket, string &compArray[]) {
    string zmq_ret = "";
    string ret = "";
    int ticket = -1;
-   bool ans = FALSE;
+   bool ans = false;
    
-   switch(switch_action) 
+   /****************************
+    * PERFORM SOME CHECKS HERE *
+    ****************************/
+   if (CheckOpsStatus(pSocket, switch_action) == true)
    {
-      case 1: // OPEN TRADE
-         
-         zmq_ret = "{";
-         
-         // Function definition:
-         ticket = DWX_OpenOrder(compArray[3], StrToInteger(compArray[2]), StrToDouble(compArray[8]), 
-                                 StrToDouble(compArray[4]), StrToInteger(compArray[5]), StrToInteger(compArray[6]), 
-                                 compArray[7], StrToInteger(compArray[9]), zmq_ret);
-                                 
-         // Send TICKET back as JSON
-         InformPullClient(pSocket, zmq_ret + "}");
-         
-         break;
-         
-      case 2: // MODIFY SL/TP
-      
-         zmq_ret = "{'_action': 'MODIFY'";
-         
-         // Function definition:
-         ans = DWX_SetSLTP(StrToInteger(compArray[10]), StrToDouble(compArray[5]), StrToDouble(compArray[6]), 
-                           StrToInteger(compArray[9]), StrToInteger(compArray[2]), StrToDouble(compArray[4]), 
-                           compArray[3], 3, zmq_ret);
-         
-         InformPullClient(pSocket, zmq_ret + "}");
-         
-         break;
-         
-      case 3: // CLOSE TRADE
-      
-         zmq_ret = "{";
-         
-         // IMPLEMENT CLOSE TRADE LOGIC HERE
-         DWX_CloseOrder_Ticket(StrToInteger(compArray[10]), zmq_ret);
-         
-         InformPullClient(pSocket, zmq_ret + "}");
-         
-         break;
-      
-      case 4: // CLOSE PARTIAL
-      
-         zmq_ret = "{";
-         
-         ans = DWX_ClosePartial(StrToDouble(compArray[8]), zmq_ret, StrToInteger(compArray[10]));
+      switch(switch_action) 
+      {
+         case 1: // OPEN TRADE
             
-         InformPullClient(pSocket, zmq_ret + "}");
-         
-         break;
-         
-      case 5: // CLOSE MAGIC
-      
-         zmq_ret = "{";
-         
-         DWX_CloseOrder_Magic(StrToInteger(compArray[9]), zmq_ret);
+            zmq_ret = "{";
             
-         InformPullClient(pSocket, zmq_ret + "}");
-         
-         break;
-         
-      case 6: // CLOSE ALL ORDERS
-      
-         zmq_ret = "{";
-         
-         DWX_CloseAllOrders(zmq_ret);
+            // Function definition:
+            ticket = DWX_OpenOrder(compArray[3], StrToInteger(compArray[2]), StrToDouble(compArray[8]), 
+                                    StrToDouble(compArray[4]), StrToInteger(compArray[5]), StrToInteger(compArray[6]), 
+                                    compArray[7], StrToInteger(compArray[9]), zmq_ret);
+                                    
+            // Send TICKET back as JSON
+            InformPullClient(pSocket, zmq_ret + "}");
             
-         InformPullClient(pSocket, zmq_ret + "}");
-         
-         break;
-      
-      case 7: // GET OPEN ORDERS
-      
-         zmq_ret = "{";
-         
-         DWX_GetOpenOrders(zmq_ret);
+            break;
             
-         InformPullClient(pSocket, zmq_ret + "}");
+         case 2: // MODIFY SL/TP
          
-         break;
+            zmq_ret = "{'_action': 'MODIFY'";
             
-      case 8: // DATA REQUEST
+            // Function definition:
+            ans = DWX_SetSLTP(StrToInteger(compArray[10]), StrToDouble(compArray[5]), StrToDouble(compArray[6]), 
+                              StrToInteger(compArray[9]), StrToInteger(compArray[2]), StrToDouble(compArray[4]), 
+                              compArray[3], 3, zmq_ret);
+            
+            InformPullClient(pSocket, zmq_ret + "}");
+            
+            break;
+            
+         case 3: // CLOSE TRADE
          
-         zmq_ret = "{";
+            zmq_ret = "{";
+            
+            // IMPLEMENT CLOSE TRADE LOGIC HERE
+            DWX_CloseOrder_Ticket(StrToInteger(compArray[10]), zmq_ret);
+            
+            InformPullClient(pSocket, zmq_ret + "}");
+            
+            break;
          
-         DWX_GetData(compArray, zmq_ret);
+         case 4: // CLOSE PARTIAL
          
-         InformPullClient(pSocket, zmq_ret + "}");
+            zmq_ret = "{";
+            
+            ans = DWX_ClosePartial(StrToDouble(compArray[8]), zmq_ret, StrToInteger(compArray[10]));
+               
+            InformPullClient(pSocket, zmq_ret + "}");
+            
+            break;
+            
+         case 5: // CLOSE MAGIC
          
-         break;
+            zmq_ret = "{";
+            
+            DWX_CloseOrder_Magic(StrToInteger(compArray[9]), zmq_ret);
+               
+            InformPullClient(pSocket, zmq_ret + "}");
+            
+            break;
+            
+         case 6: // CLOSE ALL ORDERS
          
-      default: 
-         break;
+            zmq_ret = "{";
+            
+            DWX_CloseAllOrders(zmq_ret);
+               
+            InformPullClient(pSocket, zmq_ret + "}");
+            
+            break;
+         
+         case 7: // GET OPEN ORDERS
+         
+            zmq_ret = "{";
+            
+            DWX_GetOpenOrders(zmq_ret);
+               
+            InformPullClient(pSocket, zmq_ret + "}");
+            
+            break;
+               
+         case 8: // DATA REQUEST
+            
+            zmq_ret = "{";
+            
+            DWX_GetData(compArray, zmq_ret);
+            
+            InformPullClient(pSocket, zmq_ret + "}");
+            
+            break;
+            
+         default: 
+            break;
+      }
    }
+}
+
+// Check if operations are permitted
+bool CheckOpsStatus(Socket &pSocket, int sFlag) {
+
+   if (sFlag <= 6) {
+   
+      if (!IsTradeAllowed()) {
+         InformPullClient(pSocket, "{'_response': 'TRADING_IS_NOT_ALLOWED__ABORTED_COMMAND'}");
+         return(false);
+      }
+      else if (!IsExpertEnabled()) {
+         InformPullClient(pSocket, "{'_response': 'EA_IS_DISABLED__ABORTED_COMMAND'}");
+         return(false);
+      }
+      else if (IsTradeContextBusy()) {
+         InformPullClient(pSocket, "{'_response': 'TRADE_CONTEXT_BUSY__ABORTED_COMMAND'}");
+         return(false);
+      }
+      else if (!IsDllsAllowed()) {
+         InformPullClient(pSocket, "{'_response': 'DLLS_DISABLED__ABORTED_COMMAND'}");
+         return(false);
+      }
+      else if (!IsLibrariesAllowed()) {
+         InformPullClient(pSocket, "{'_response': 'LIBS_DISABLED__ABORTED_COMMAND'}"); 
+         return(false);
+      }
+      else if (!IsConnected()) {
+         InformPullClient(pSocket, "{'_response': 'NO_BROKER_CONNECTION__ABORTED_COMMAND'}");
+         return(false);
+      }
+      /*
+      else {
+         InformPullClient(pSocket, "{'_response': 'INOPERABLE_EA_STATUS__ABORTED_COMMAND'}");
+         return(false);
+      }
+      */
+      Print("Sending client bad news..");
+   }
+   
+   return(true);
 }
 
 // Parse Zmq Message
@@ -823,6 +878,18 @@ int DWX_IsTradeAllowed(int MaxWaiting_sec, string &zmq_ret) {
     }
     
     return(1);
+}
+
+bool CheckServerStatus() {
+
+   // Is _StopFlag == True, inform the client application
+   if (IsStopped()) {
+      InformPullClient(pullSocket, "{'_response': 'EA_IS_STOPPED'}");
+      return(false);
+   }
+   
+   // Default
+   return(true);
 }
 
 string ErrorDescription(int error_code)
