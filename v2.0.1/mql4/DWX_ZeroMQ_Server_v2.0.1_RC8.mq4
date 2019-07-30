@@ -422,13 +422,6 @@ bool CheckOpsStatus(Socket &pSocket, int sFlag) {
          InformPullClient(pSocket, "{'_response': 'NO_BROKER_CONNECTION__ABORTED_COMMAND'}");
          return(false);
       }
-      /*
-      else {
-         InformPullClient(pSocket, "{'_response': 'INOPERABLE_EA_STATUS__ABORTED_COMMAND'}");
-         return(false);
-      }
-      */
-      Print("Sending client bad news..");
    }
    
    return(true);
