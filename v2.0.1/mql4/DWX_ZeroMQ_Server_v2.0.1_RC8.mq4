@@ -2,7 +2,7 @@
 //|     DWX_ZeroMQ_Server_v2.0.1_RC8.mq4
 //|     @author: Darwinex Labs (www.darwinex.com)
 //|    
-//|     Last Updated: July 29, 2019
+//|     Last Updated: July 30, 2019
 //|
 //|     Copyright (c) 2017-2019, Darwinex. All rights reserved.
 //|    
@@ -96,6 +96,7 @@ int OnInit()
       // Send new market data to PUB_PORT that client is subscribed to.
       Print("[PUB] Binding MT4 Server to Socket on Port " + IntegerToString(PUB_PORT) + "..");
       pubSocket.bind(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PUB_PORT));
+      pubSocket.setLinger(0);
    }
    
 //---
@@ -110,14 +111,17 @@ void OnDeinit(const int reason)
     
    Print("[PUSH] Unbinding MT4 Server from Socket on Port " + IntegerToString(PULL_PORT) + "..");
    pushSocket.unbind(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PULL_PORT));
+   pushSocket.disconnect(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PULL_PORT));
    
    Print("[PULL] Unbinding MT4 Server from Socket on Port " + IntegerToString(PUSH_PORT) + "..");
    pullSocket.unbind(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PUSH_PORT));
+   pullSocket.disconnect(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PUSH_PORT));
    
-   if (Publish_MarketData == TRUE)
+   if (Publish_MarketData == true)
    {
       Print("[PUB] Unbinding MT4 Server from Socket on Port " + IntegerToString(PUB_PORT) + "..");
       pubSocket.unbind(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PUB_PORT));
+      pubSocket.disconnect(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PUB_PORT));
    }
    
    // Shutdown ZeroMQ Context
@@ -138,18 +142,14 @@ void OnTick()
    
    if(CheckServerStatus() == true)
    {
-      // if(!IsStopped() && Publish_MarketData == true)
       if(Publish_MarketData == true)
       {
          for(int s = 0; s < ArraySize(Publish_Symbols); s++)
          {
-            // Python clients can subscribe to a price feed by setting
-            // socket options to the symbol name. For example:
-            
             string _tick = GetBidAsk(Publish_Symbols[s]);
             Print("Sending " + Publish_Symbols[s] + " " + _tick + " to PUB Socket");
-            ZmqMsg reply(StringFormat("%s %s", Publish_Symbols[s], _tick));
-            pubSocket.send(reply, true);
+            
+            InformPullClient(pubSocket, StringFormat("%s %s", Publish_Symbols[s], _tick));
          }
       }
    }
@@ -171,28 +171,14 @@ void OnTimer()
       pullSocket.recv(request, true);
       
       if (request.size() > 0)
-      {
-         // Wait 
-         // pullSocket.recv(request,false);
-         
-         // MessageHandler() should go here.   
-         ZmqMsg reply = MessageHandler(request);
-         
-         // Send response, and block
-         // pushSocket.send(reply);
-         
-         // Send response, but don't block
-         pushSocket.send(reply, true);
-      }
+         MessageHandler(request);
    }
 }
 //+------------------------------------------------------------------+
 
-ZmqMsg MessageHandler(ZmqMsg &_request) {
-   
-   // Output object
-   ZmqMsg reply;
-   
+// ZmqMsg MessageHandler(ZmqMsg &_request) {
+void MessageHandler(ZmqMsg &_request) {
+      
    // Message components for later.
    string components[11];
    
@@ -211,11 +197,6 @@ ZmqMsg MessageHandler(ZmqMsg &_request) {
       InterpretZmqMessage(&pushSocket, components);
       
    }
-   else {
-      // NO DATA RECEIVED
-   }
-   
-   return(reply);
 }
 
 // Interpret Zmq Message and perform actions
@@ -612,14 +593,12 @@ bool DWX_SetSLTP(int ticket, double _SL, double _TP, int _magic, int _type, doub
          if(retries == 0) {
             RefreshRates();
             DWX_CloseAtMarket(-1, zmq_ret);
-            // int lastOrderErrorCloseTime = TimeCurrent();
          }
          
          return(false);
       }
    }    
    
-   // return(true);
    return(false);
 }
 
@@ -1010,8 +989,4 @@ double DWX_GetBid(string symbol) {
       return(MarketInfo(symbol,MODE_BID));
    }
 }
-//+------------------------------------------------------------------+
-
-
-
 //+------------------------------------------------------------------+
