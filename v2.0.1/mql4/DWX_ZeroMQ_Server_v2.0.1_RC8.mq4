@@ -96,6 +96,7 @@ int OnInit()
       // Send new market data to PUB_PORT that client is subscribed to.
       Print("[PUB] Binding MT4 Server to Socket on Port " + IntegerToString(PUB_PORT) + "..");
       pubSocket.bind(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PUB_PORT));
+      pubSocket.setSendHighWaterMark(1);
       pubSocket.setLinger(0);
    }
    
@@ -125,7 +126,9 @@ void OnDeinit(const int reason)
    }
    
    // Shutdown ZeroMQ Context
-   context.shutdown();
+   // context.shutdown();
+   
+   // Destroy ZeroMQ Context
    context.destroy(0);
    
    EventKillTimer();
