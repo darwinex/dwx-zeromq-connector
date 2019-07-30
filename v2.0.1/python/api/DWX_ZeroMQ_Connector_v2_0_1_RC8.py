@@ -4,7 +4,7 @@
     --
     @author: Darwinex Labs (www.darwinex.com)
     
-    Last Updated: May 16, 2019
+    Last Updated: July 30, 2019
     
     Copyright (c) 2017-2019, Darwinex. All rights reserved.
     
@@ -31,11 +31,12 @@ class DWX_ZeroMQ_Connector():
                  _ClientID='DLabs_Python',  # Unique ID for this client
                  _host='localhost',         # Host to connect to
                  _protocol='tcp',           # Connection protocol
-                 _PUSH_PORT=32768,           # Port for Sending commands
-                 _PULL_PORT=32769,           # Port for Receiving responses
-                 _SUB_PORT=32770,            # Port for Subscribing for prices
+                 _PUSH_PORT=32768,          # Port for Sending commands
+                 _PULL_PORT=32769,          # Port for Receiving responses
+                 _SUB_PORT=32770,           # Port for Subscribing for prices
                  _delimiter=';',
-                 _verbose=True):           # String delimiter           
+                 _verbose=True,             # String delimiter
+                 _poll_timeout=1000):       # ZMQ Poller Timeout (ms)
     
         # Strategy Status (if this is False, ZeroMQ will not listen for data)
         self._ACTIVE = True
@@ -92,10 +93,6 @@ class DWX_ZeroMQ_Connector():
         # BID/ASK Market Data Subscription Threads ({SYMBOL: Thread})
         self._MarketData_Thread = None
         
-        # Begin polling for PULL / SUB data
-        self._MarketData_Thread = Thread(target=self._DWX_ZMQ_Poll_Data_, args=(self._string_delimiter))
-        self._MarketData_Thread.start()
-        
         # Market Data Dictionary by Symbol (holds tick data)
         self._Market_Data_DB = {}   # {SYMBOL: {TIMESTAMP: (BID, ASK)}}
                                 
@@ -107,6 +104,14 @@ class DWX_ZeroMQ_Connector():
         
         # Verbosity
         self._verbose = _verbose
+        
+        # ZMQ Poller Timeout
+        self._poll_timeout = _poll_timeout
+        
+        # Begin polling for PULL / SUB data
+        self._MarketData_Thread = Thread(target=self._DWX_ZMQ_Poll_Data_, args=(self._string_delimiter,
+                                                                                self._poll_timeout,))
+        self._MarketData_Thread.start()
         
     ##########################################################################
     
@@ -360,11 +365,12 @@ class DWX_ZeroMQ_Connector():
     """
     
     def _DWX_ZMQ_Poll_Data_(self, 
-                           string_delimiter=';'):
+                           string_delimiter=';',
+                           poll_timeout=1000):
         
         while self._ACTIVE:
             
-            sockets = dict(self._poller.poll())
+            sockets = dict(self._poller.poll(poll_timeout))
             
             # Process response to commands sent to MetaTrader
             if self._PULL_SOCKET in sockets and sockets[self._PULL_SOCKET] == zmq.POLLIN:
@@ -427,14 +433,18 @@ class DWX_ZeroMQ_Connector():
     """
     Function to subscribe to given Symbol's BID/ASK feed from MetaTrader
     """
-    def _DWX_MTX_SUBSCRIBE_MARKETDATA_(self, _symbol, _string_delimiter=';'):
+    def _DWX_MTX_SUBSCRIBE_MARKETDATA_(self, 
+                                       _symbol='EURUSD', 
+                                       string_delimiter=';',
+                                       poll_timeout=1000):
         
         # Subscribe to SYMBOL first.
         self._SUB_SOCKET.setsockopt_string(zmq.SUBSCRIBE, _symbol)
         
         if self._MarketData_Thread is None:
             
-            self._MarketData_Thread = Thread(target=self._DWX_ZMQ_Poll_Data, args=(_string_delimiter))
+            self._MarketData_Thread = Thread(target=self._DWX_ZMQ_Poll_Data, args=(string_delimiter,
+                                                                                   poll_timeout,))
             self._MarketData_Thread.start()
         
         print("[KERNEL] Subscribed to {} BID/ASK updates. See self._Market_Data_DB.".format(_symbol))
