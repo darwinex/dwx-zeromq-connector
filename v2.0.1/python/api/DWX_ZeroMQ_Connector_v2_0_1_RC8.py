@@ -22,13 +22,16 @@ from time import sleep
 from pandas import DataFrame, Timestamp
 from threading import Thread
 
+# 30-07-2019 10:58 CEST
+from zmq.utils.monitor import recv_monitor_message
+
 class DWX_ZeroMQ_Connector():
 
     """
     Setup ZeroMQ -> MetaTrader Connector
     """
     def __init__(self, 
-                 _ClientID='DLabs_Python',  # Unique ID for this client
+                 _ClientID='dwx-zeromq',    # Unique ID for this client
                  _host='localhost',         # Host to connect to
                  _protocol='tcp',           # Connection protocol
                  _PUSH_PORT=32768,          # Port for Sending commands
@@ -36,8 +39,11 @@ class DWX_ZeroMQ_Connector():
                  _SUB_PORT=32770,           # Port for Subscribing for prices
                  _delimiter=';',
                  _verbose=True,             # String delimiter
-                 _poll_timeout=1000):       # ZMQ Poller Timeout (ms)
+                 _poll_timeout=1000,        # ZMQ Poller Timeout (ms)
+                 _monitor=True):            # ZeroMQ Socket Monitoring
     
+        ######################################################################
+        
         # Strategy Status (if this is False, ZeroMQ will not listen for data)
         self._ACTIVE = True
         
@@ -64,9 +70,11 @@ class DWX_ZeroMQ_Connector():
         # Create Sockets
         self._PUSH_SOCKET = self._ZMQ_CONTEXT.socket(zmq.PUSH)
         self._PUSH_SOCKET.setsockopt(zmq.SNDHWM, 1)
+        self._PUSH_SOCKET_STATUS = True
         
         self._PULL_SOCKET = self._ZMQ_CONTEXT.socket(zmq.PULL)
         self._PULL_SOCKET.setsockopt(zmq.RCVHWM, 1)
+        self._PULL_SOCKET_STATUS = True
         
         self._SUB_SOCKET = self._ZMQ_CONTEXT.socket(zmq.SUB)
         
@@ -109,10 +117,47 @@ class DWX_ZeroMQ_Connector():
         self._poll_timeout = _poll_timeout
         
         # Begin polling for PULL / SUB data
-        self._MarketData_Thread = Thread(target=self._DWX_ZMQ_Poll_Data_, args=(self._string_delimiter,
-                                                                                self._poll_timeout,))
+        self._MarketData_Thread = Thread(target=self._DWX_ZMQ_Poll_Data_, 
+                                         args=(self._string_delimiter,
+                                               self._poll_timeout,))
         self._MarketData_Thread.start()
         
+        ###########################################
+        # Enable/Disable ZeroMQ Socket Monitoring #
+        ###########################################
+        if _monitor == True:
+            
+            # ZeroMQ Monitor Event Map
+            self._MONITOR_EVENT_MAP = {}
+            
+            print("\n[KERNEL] Retrieving ZeroMQ Monitor Event Names:\n")
+            
+            for name in dir(zmq):
+                if name.startswith('EVENT_'):
+                    value = getattr(zmq, name)
+                    print("%21s : %4i" % (name, value))
+                    self._MONITOR_EVENT_MAP[value] = name
+            
+            print("\n[KERNEL] Socket Monitoring Config -> DONE!\n")
+        
+            # Disable PUSH/PULL sockets and let MONITOR events control them.
+            self._PUSH_SOCKET_STATUS = False
+            self._PULL_SOCKET_STATUS = False
+            
+            # PUSH
+            self._PUSH_Monitor_Thread = Thread(target=self._DWX_ZMQ_EVENT_MONITOR_, 
+                                               args=("PUSH",
+                                                     self._PUSH_SOCKET.get_monitor_socket(),))
+            
+            self._PUSH_Monitor_Thread.start()
+            
+            # PULL
+            self._PULL_Monitor_Thread = Thread(target=self._DWX_ZMQ_EVENT_MONITOR_, 
+                                               args=("PULL",
+                                                     self._PULL_SOCKET.get_monitor_socket(),))
+            
+            self._PULL_Monitor_Thread.start()
+            
     ##########################################################################
     
     """
@@ -130,11 +175,14 @@ class DWX_ZeroMQ_Connector():
     """
     def remote_send(self, _socket, _data):
         
-        try:
-            _socket.send_string(_data, zmq.DONTWAIT)
-        except zmq.error.Again:
-            print("\nResource timeout.. please try again.")
-            sleep(0.000000001)
+        if self._PUSH_SOCKET_STATUS == True:
+            try:
+                _socket.send_string(_data, zmq.DONTWAIT)
+            except zmq.error.Again:
+                print("\nResource timeout.. please try again.")
+                sleep(0.000000001)
+        else:
+            print('\n[KERNEL] NO HANDSHAKE ON PUSH SOCKET.. Cannot SEND data')
       
     ##########################################################################
     
@@ -165,16 +213,19 @@ class DWX_ZeroMQ_Connector():
     ##########################################################################
     
     """
-    Function to retrieve data from MetaTrader (PULL or SUB)
+    Function to retrieve data from MetaTrader (PULL)
     """
     def remote_recv(self, _socket):
         
-        try:
-            msg = _socket.recv_string(zmq.DONTWAIT)
-            return msg
-        except zmq.error.Again:
-            print("\nResource timeout.. please try again.")
-            sleep(0.000001)
+        if self._PULL_SOCKET_STATUS == True:
+            try:
+                msg = _socket.recv_string(zmq.DONTWAIT)
+                return msg
+            except zmq.error.Again:
+                print("\nResource timeout.. please try again.")
+                sleep(0.000001)
+        else:
+            print('\n[KERNEL] NO HANDSHAKE ON PULL SOCKET.. Cannot READ data')
             
         return None
         
@@ -278,7 +329,7 @@ class DWX_ZeroMQ_Connector():
                   '_price': 0.0,
                   '_SL': 500, # SL/TP in POINTS, not pips.
                   '_TP': 500,
-                  '_comment': 'DWX_Python_to_MT',
+                  '_comment': self._ClientID,
                   '_lots': 0.01,
                   '_magic': 123456,
                   '_ticket': 0})
@@ -375,31 +426,36 @@ class DWX_ZeroMQ_Connector():
             # Process response to commands sent to MetaTrader
             if self._PULL_SOCKET in sockets and sockets[self._PULL_SOCKET] == zmq.POLLIN:
                 
-                try:
-                    
-                    msg = self._PULL_SOCKET.recv_string(zmq.DONTWAIT)
-                    
-                    # If data is returned, store as pandas Series
-                    if msg != '' and msg != None:
+                if self._PULL_SOCKET_STATUS == True:
+                    try:
                         
-                        try: 
-                            _data = eval(msg)
+                        # msg = self._PULL_SOCKET.recv_string(zmq.DONTWAIT)
+                        msg = self.remote_recv(self._PULL_SOCKET)
+                        
+                        # If data is returned, store as pandas Series
+                        if msg != '' and msg != None:
                             
-                            self._thread_data_output = _data
-                            if self._verbose:
-                                print(_data) # default logic
+                            try: 
+                                _data = eval(msg)
                                 
-                        except Exception as ex:
-                            _exstr = "Exception Type {0}. Args:\n{1!r}"
-                            _msg = _exstr.format(type(ex).__name__, ex.args)
-                            print(_msg)
-               
-                except zmq.error.Again:
-                    pass # resource temporarily unavailable, nothing to print
-                except ValueError:
-                    pass # No data returned, passing iteration.
-                except UnboundLocalError:
-                    pass # _symbol may sometimes get referenced before being assigned.
+                                self._thread_data_output = _data
+                                if self._verbose:
+                                    print(_data) # default logic
+                                    
+                            except Exception as ex:
+                                _exstr = "Exception Type {0}. Args:\n{1!r}"
+                                _msg = _exstr.format(type(ex).__name__, ex.args)
+                                print(_msg)
+                   
+                    except zmq.error.Again:
+                        pass # resource temporarily unavailable, nothing to print
+                    except ValueError:
+                        pass # No data returned, passing iteration.
+                    except UnboundLocalError:
+                        pass # _symbol may sometimes get referenced before being assigned.
+                
+                else:
+                    print('\n[KERNEL] NO HANDSHAKE on PULL SOCKET.. Cannot READ data.')
             
             # Receive new market data from MetaTrader
             if self._SUB_SOCKET in sockets and sockets[self._SUB_SOCKET] == zmq.POLLIN:
@@ -465,5 +521,46 @@ class DWX_ZeroMQ_Connector():
         
         self._setStatus(False)
         self._MarketData_Thread = None
+    
+    ##########################################################################
+    
+    def _DWX_ZMQ_EVENT_MONITOR_(self, 
+                                socket_name, 
+                                monitor_socket):
+        
+        while monitor_socket.poll():
+            evt = recv_monitor_message(monitor_socket)
+            evt.update({'description': self._MONITOR_EVENT_MAP[evt['event']]})
+            print("\r[ZeroMQ Socket Monitoring Updates] >> [{}] Event: {}".format(socket_name.upper(), evt['description']), end='', flush=True)
+            
+            # Set socket status on HANDSHAKE
+            if evt['event'] == 4096:        # EVENT_HANDSHAKE_SUCCEEDED
+                
+                if socket_name == "PUSH":
+                    self._PUSH_SOCKET_STATUS = True
+                    
+                elif socket_name == "PULL":
+                    self._PULL_SOCKET_STATUS = True
+                    
+            elif evt['event'] in [128,      # EVENT_CLOSED,
+                                  64,       # EVENT_ACCEPT_FAILED,
+                                  4,        # EVENT_CONNECT_RETIRED,
+                                  512,      # EVENT_DISCONNECTED,
+                                  16384,    # EVENT_HANDSHAKE_FAILED_AUTH,
+                                  2048,     # EVENT_HANDSHAKE_FAILED_NO_DETAIL,
+                                  8192]:    # EVENT_HANDSHAKE_FAILED_PROTOCOL
+                
+                if socket_name == "PUSH":
+                    self._PUSH_SOCKET_STATUS = False
+                    
+                elif socket_name == "PULL":
+                    self._PULL_SOCKET_STATUS = False
+            
+            if evt['event'] == zmq.EVENT_MONITOR_STOPPED:
+                break
+            
+        # Close Monitor Socket
+        monitor_socket.close()
+        print("\n[KERNEL] ZeroMQ Socket Event Monitor Thread DONE!")
     
     ##########################################################################
