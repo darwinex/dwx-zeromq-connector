@@ -4,7 +4,7 @@
     --
     @author: Darwinex Labs (www.darwinex.com)
     
-    Last Updated: July 30, 2019
+    Last Updated: July 31, 2019
     
     Copyright (c) 2017-2019, Darwinex. All rights reserved.
     
@@ -519,9 +519,10 @@ class DWX_ZeroMQ_Connector():
     """
     def _DWX_MTX_UNSUBSCRIBE_ALL_MARKETDATA_REQUESTS_(self):
         
-        self._setStatus(False)
-        self._MarketData_Thread = None
-    
+        # 31-07-2019 12:22 CEST
+        for _symbol in self._Market_Data_DB.keys():
+            self._DWX_MTX_UNSUBSCRIBE_MARKETDATA_(_symbol=_symbol)
+        
     ##########################################################################
     
     def _DWX_ZMQ_EVENT_MONITOR_(self, 
