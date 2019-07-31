@@ -603,7 +603,7 @@ bool DWX_SetSLTP(int ticket, double _SL, double _TP, int _magic, int _type, doub
    }
    else
    {
-      zmq_ret = zmq_ret + ", '_response': 'TICKET_NOT_FOUND'";
+      zmq_ret = zmq_ret + ", '_response': 'NOT_FOUND'";
    }
        
    
