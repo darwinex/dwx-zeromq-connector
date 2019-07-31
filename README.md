@@ -3,7 +3,7 @@
 # Latest version: 2.0.1 [(here)](https://github.com/darwinex/dwx-zeromq-connector/tree/master/v2.0.1)
 ## (v2.0.2 is currently in beta-testing, please do not upgrade to v2.0.2)
 
-## Need help? Join the [Darwinex Collective Slack](https://join.slack.com/t/darwinex-collective/shared_invite/enQtNjg4MjA0ODUzODkyLWFiZWZlMDZjNGVmOGE2ZDBiZGI4ZWUxNjM5YTU0MjZkMTQ2NGZjNGIyN2QxZDY4NjUyZmVlNmU3N2E2NGE1Mjk) for Q&A, debug and more.
+## Need help? Join the [Darwinex Collective Slack](https://join.slack.com/t/darwinex-collective/shared_invite/enQtNjg4MjA0ODUzODkyLWFiZWZlMDZjNGVmOGE2ZDBiZGI4ZWUxNjM5YTU0MjZkMTQ2NGZjNGIyN2QxZDY4NjUyZmVlNmU3N2E2NGE1Mjk) for code updates, Q&A and more.
 
 ## Table of Contents
 * [Introduction](#introduction)
