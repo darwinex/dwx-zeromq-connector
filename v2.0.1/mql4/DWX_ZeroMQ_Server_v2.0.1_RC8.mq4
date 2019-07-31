@@ -585,9 +585,13 @@ bool DWX_SetSLTP(int ticket, double _SL, double _TP, int _magic, int _type, doub
     
       double vpoint  = MarketInfo(OrderSymbol(), MODE_POINT);
       int    vdigits = (int)MarketInfo(OrderSymbol(), MODE_DIGITS);
+      double mSL = NormalizeDouble(OrderOpenPrice()-_SL*dir_flag*vpoint,vdigits);
+      double mTP = NormalizeDouble(OrderOpenPrice()+_TP*dir_flag*vpoint,vdigits);
       
-      if(OrderModify(ticket, OrderOpenPrice(), NormalizeDouble(OrderOpenPrice()-_SL*dir_flag*vpoint,vdigits), NormalizeDouble(OrderOpenPrice()+_TP*dir_flag*vpoint,vdigits), 0, 0)) {
-         zmq_ret = zmq_ret + ", '_sl': " + DoubleToString(_SL) + ", '_tp': " + DoubleToString(_TP);
+      // if(OrderModify(ticket, OrderOpenPrice(), NormalizeDouble(OrderOpenPrice()-_SL*dir_flag*vpoint,vdigits), NormalizeDouble(OrderOpenPrice()+_TP*dir_flag*vpoint,vdigits), 0, 0)) {
+      if(OrderModify(ticket, OrderOpenPrice(), mSL, mTP, 0, 0)) {
+         // zmq_ret = zmq_ret + ", '_sl': " + DoubleToString(_SL) + ", '_tp': " + DoubleToString(_TP);
+         zmq_ret = zmq_ret + ", '_sl': " + DoubleToString(mSL) + ", '_tp': " + DoubleToString(mTP);
          return(true);
       } else {
          int error = GetLastError();
@@ -638,6 +642,7 @@ bool DWX_CloseAtMarket(double size, string &zmq_ret) {
 // CLOSE PARTIAL SIZE
 bool DWX_ClosePartial(double size, string &zmq_ret, int ticket = 0) {
    
+   int error;
    bool close_ret = False;
    
    // If the function is called directly, setup init() JSON here and get OrderSelect.
@@ -664,8 +669,15 @@ bool DWX_ClosePartial(double size, string &zmq_ret, int ticket = 0) {
       size = OrderLots();
    }
    close_ret = OrderClose(ticket, size, priceCP, MaximumSlippage);
-   Print(close_ret);
-   zmq_ret = zmq_ret + ", '_close_price': " + DoubleToString(priceCP) + ", '_close_lots': " + DoubleToString(size);
+   
+   if (close_ret == true)
+      zmq_ret = zmq_ret + ", '_close_price': " + DoubleToString(priceCP) + ", '_close_lots': " + DoubleToString(size);
+   else
+   {
+      error = GetLastError();
+      zmq_ret = zmq_ret + ", '_response': '" + IntegerToString(error) + "', '_response_value': '" + ErrorDescription(error) + "'";
+   }
+      
    return(close_ret);
       
 }
