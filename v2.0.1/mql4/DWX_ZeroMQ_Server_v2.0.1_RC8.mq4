@@ -2,7 +2,7 @@
 //|     DWX_ZeroMQ_Server_v2.0.1_RC8.mq4
 //|     @author: Darwinex Labs (www.darwinex.com)
 //|    
-//|     Last Updated: July 30, 2019
+//|     Last Updated: July 31, 2019
 //|
 //|     Copyright (c) 2017-2019, Darwinex. All rights reserved.
 //|    
@@ -600,7 +600,12 @@ bool DWX_SetSLTP(int ticket, double _SL, double _TP, int _magic, int _type, doub
          
          return(false);
       }
-   }    
+   }
+   else
+   {
+      zmq_ret = zmq_ret + ", '_response': 'TICKET_NOT_FOUND'";
+   }
+       
    
    return(false);
 }
