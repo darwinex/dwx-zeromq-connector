@@ -357,6 +357,8 @@ Output:
 
 1. [Build Algorithmic Trading Strategies with Python & ZeroMQ: Part 2](https://www.youtube.com/watch?v=VtOfF-nhhj8)
 
+1. [Troubleshooting Python, ZeroMQ & MetaTrader Configuration for Algorithmic Trading](https://www.youtube.com/watch?v=7aAsFZ_r5zU&list=PLv-cA-4O3y94ygY4qDlfCcDqkMmqMteah&index=6)
+
 ## Available functions:
 
 1. DWX_MTX_NEW_TRADE_(self, _order=None)
