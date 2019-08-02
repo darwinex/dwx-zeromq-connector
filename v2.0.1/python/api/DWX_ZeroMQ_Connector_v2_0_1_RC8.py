@@ -4,7 +4,7 @@
     --
     @author: Darwinex Labs (www.darwinex.com)
     
-    Last Updated: July 31, 2019
+    Last Updated: August 02, 2019
     
     Copyright (c) 2017-2019, Darwinex. All rights reserved.
     
@@ -69,7 +69,7 @@ class DWX_ZeroMQ_Connector():
         
         # Create Sockets
         self._PUSH_SOCKET = self._ZMQ_CONTEXT.socket(zmq.PUSH)
-        self._PUSH_SOCKET.setsockopt(zmq.SNDHWM, 1)
+        self._PUSH_SOCKET.setsockopt(zmq.SNDHWM, 1)        
         self._PUSH_SOCKET_STATUS = True
         
         self._PULL_SOCKET = self._ZMQ_CONTEXT.socket(zmq.PULL)
@@ -225,7 +225,7 @@ class DWX_ZeroMQ_Connector():
                 print("\nResource timeout.. please try again.")
                 sleep(0.000001)
         else:
-            print('\n[KERNEL] NO HANDSHAKE ON PULL SOCKET.. Cannot READ data')
+            print('\r[KERNEL] NO HANDSHAKE ON PULL SOCKET.. Cannot READ data', end='', flush=True)
             
         return None
         
@@ -455,7 +455,7 @@ class DWX_ZeroMQ_Connector():
                         pass # _symbol may sometimes get referenced before being assigned.
                 
                 else:
-                    print('\n[KERNEL] NO HANDSHAKE on PULL SOCKET.. Cannot READ data.')
+                    print('\r[KERNEL] NO HANDSHAKE on PULL SOCKET.. Cannot READ data.', end='', flush=True)
             
             # Receive new market data from MetaTrader
             if self._SUB_SOCKET in sockets and sockets[self._SUB_SOCKET] == zmq.POLLIN:
@@ -564,4 +564,9 @@ class DWX_ZeroMQ_Connector():
         monitor_socket.close()
         print("\n[KERNEL] ZeroMQ Socket Event Monitor Thread DONE!")
     
+    ##########################################################################
+    
+    def _DWX_ZMQ_HEARTBEAT_(self):
+        self.remote_send(self._PUSH_SOCKET, "HEARTBEAT;")
+        
     ##########################################################################
