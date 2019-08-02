@@ -2,7 +2,7 @@
 //|     DWX_ZeroMQ_Server_v2.0.1_RC8.mq4
 //|     @author: Darwinex Labs (www.darwinex.com)
 //|    
-//|     Last Updated: July 31, 2019
+//|     Last Updated: August 02, 2019
 //|
 //|     Copyright (c) 2017-2019, Darwinex. All rights reserved.
 //|    
@@ -79,25 +79,27 @@ int OnInit()
    
    context.setBlocky(false);
    
+   /* Set Socket Options */
+   
    // Send responses to PULL_PORT that client is listening on.
-   Print("[PUSH] Binding MT4 Server to Socket on Port " + IntegerToString(PULL_PORT) + "..");
-   pushSocket.bind(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PULL_PORT));
    pushSocket.setSendHighWaterMark(1);
    pushSocket.setLinger(0);
+   Print("[PUSH] Binding MT4 Server to Socket on Port " + IntegerToString(PULL_PORT) + "..");
+   pushSocket.bind(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PULL_PORT));
    
    // Receive commands from PUSH_PORT that client is sending to.
-   Print("[PULL] Binding MT4 Server to Socket on Port " + IntegerToString(PUSH_PORT) + "..");   
-   pullSocket.bind(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PUSH_PORT));
    pullSocket.setReceiveHighWaterMark(1);
    pullSocket.setLinger(0);
+   Print("[PULL] Binding MT4 Server to Socket on Port " + IntegerToString(PUSH_PORT) + "..");   
+   pullSocket.bind(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PUSH_PORT));
    
    if (Publish_MarketData == true)
    {
       // Send new market data to PUB_PORT that client is subscribed to.
-      Print("[PUB] Binding MT4 Server to Socket on Port " + IntegerToString(PUB_PORT) + "..");
-      pubSocket.bind(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PUB_PORT));
       pubSocket.setSendHighWaterMark(1);
       pubSocket.setLinger(0);
+      Print("[PUB] Binding MT4 Server to Socket on Port " + IntegerToString(PUB_PORT) + "..");
+      pubSocket.bind(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PUB_PORT));
    }
    
 //---
@@ -124,9 +126,6 @@ void OnDeinit(const int reason)
       pubSocket.unbind(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PUB_PORT));
       pubSocket.disconnect(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PUB_PORT));
    }
-   
-   // Shutdown ZeroMQ Context
-   // context.shutdown();
    
    // Destroy ZeroMQ Context
    context.destroy(0);
@@ -205,8 +204,6 @@ void MessageHandler(ZmqMsg &_request) {
 // Interpret Zmq Message and perform actions
 void InterpretZmqMessage(Socket &pSocket, string &compArray[]) {
 
-   // Print("ZMQ: Interpreting Message..");
-   
    // Message Structures:
    
    // 1) Trading
@@ -254,6 +251,11 @@ void InterpretZmqMessage(Socket &pSocket, string &compArray[]) {
    
    int switch_action = 0;
    
+   /* 02-08-2019 10:41 CEST - HEARTBEAT */
+   if(compArray[0] == "HEARTBEAT")
+      InformPullClient(pSocket, "{'_action': 'heartbeat', '_response': 'loud and clear!'}");
+      
+   /* Process Messages */
    if(compArray[0] == "TRADE" && compArray[1] == "OPEN")
       switch_action = 1;
    if(compArray[0] == "TRADE" && compArray[1] == "MODIFY")
@@ -271,6 +273,7 @@ void InterpretZmqMessage(Socket &pSocket, string &compArray[]) {
    if(compArray[0] == "DATA")
       switch_action = 8;
    
+   /* Setup processing variables */
    string zmq_ret = "";
    string ret = "";
    int ticket = -1;
