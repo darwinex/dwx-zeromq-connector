@@ -4,7 +4,7 @@
     --
     @author: Darwinex Labs (www.darwinex.com)
     
-    Last Updated: August 02, 2019
+    Last Updated: August 05, 2019
     
     Copyright (c) 2017-2019, Darwinex. All rights reserved.
     
@@ -120,6 +120,7 @@ class DWX_ZeroMQ_Connector():
         self._MarketData_Thread = Thread(target=self._DWX_ZMQ_Poll_Data_, 
                                          args=(self._string_delimiter,
                                                self._poll_timeout,))
+        self._MarketData_Thread.daemon = True
         self._MarketData_Thread.start()
         
         ###########################################
@@ -149,6 +150,7 @@ class DWX_ZeroMQ_Connector():
                                                args=("PUSH",
                                                      self._PUSH_SOCKET.get_monitor_socket(),))
             
+            self._PUSH_Monitor_Thread.daemon = True
             self._PUSH_Monitor_Thread.start()
             
             # PULL
@@ -156,8 +158,35 @@ class DWX_ZeroMQ_Connector():
                                                args=("PULL",
                                                      self._PULL_SOCKET.get_monitor_socket(),))
             
+            self._PULL_Monitor_Thread.daemon = True
             self._PULL_Monitor_Thread.start()
-            
+        
+    ##########################################################################
+    
+    def __del__(self):
+        self._DWX_ZMQ_SHUTDOWN_()
+    
+    ##########################################################################
+    
+    def _DWX_ZMQ_SHUTDOWN_(self):
+        
+        # Set INACTIVE
+        self._ACTIVE = False
+        
+        # Get all threads to shutdown
+        self._MarketData_Thread.join()
+        self._PUSH_Monitor_Thread.join()
+        self._PULL_Monitor_Thread.join()
+        
+        # Unregister sockets from Poller
+        self._poller.unregister(self._PULL_SOCKET)
+        self._poller.unregister(self._SUB_SOCKET)
+        print("[KERNEL] Sockets unregistered from ZMQ Poller()!")
+        
+        # Terminate context 
+        self._ZMQ_CONTEXT.destroy(0)
+        print("[KERNEL] ZeroMQ Context Terminated.. everything was correctly shut down! :)")
+        
     ##########################################################################
     
     """
@@ -483,6 +512,8 @@ class DWX_ZeroMQ_Connector():
                     pass # No data returned, passing iteration.
                 except UnboundLocalError:
                     pass # _symbol may sometimes get referenced before being assigned.
+                    
+        print("\n++ [KERNEL] _DWX_ZMQ_Poll_Data_() Signing Out ++")
                 
     ##########################################################################
     
@@ -496,12 +527,6 @@ class DWX_ZeroMQ_Connector():
         
         # Subscribe to SYMBOL first.
         self._SUB_SOCKET.setsockopt_string(zmq.SUBSCRIBE, _symbol)
-        
-        if self._MarketData_Thread is None:
-            
-            self._MarketData_Thread = Thread(target=self._DWX_ZMQ_Poll_Data, args=(string_delimiter,
-                                                                                   poll_timeout,))
-            self._MarketData_Thread.start()
         
         print("[KERNEL] Subscribed to {} BID/ASK updates. See self._Market_Data_DB.".format(_symbol))
     
@@ -529,44 +554,54 @@ class DWX_ZeroMQ_Connector():
                                 socket_name, 
                                 monitor_socket):
         
-        while monitor_socket.poll():
+        # 05-08-2019 11:21 CEST
+        while self._ACTIVE:
             
-            evt = recv_monitor_message(monitor_socket)
-            evt.update({'description': self._MONITOR_EVENT_MAP[evt['event']]})
-            
-            print(f"\n[{socket_name} Socket] >> {evt['description']}")
-            
-            # Set socket status on HANDSHAKE
-            if evt['event'] == 4096:        # EVENT_HANDSHAKE_SUCCEEDED
+            # while monitor_socket.poll():
+            while monitor_socket.poll(self._poll_timeout):
                 
-                if socket_name == "PUSH":
-                    self._PUSH_SOCKET_STATUS['state'] = True
-                    self._PUSH_SOCKET_STATUS['latest_event'] = 'EVENT_HANDSHAKE_SUCCEEDED'
+                try:
+                    evt = recv_monitor_message(monitor_socket, zmq.DONTWAIT)
+                    evt.update({'description': self._MONITOR_EVENT_MAP[evt['event']]})
                     
-                elif socket_name == "PULL":
-                    self._PULL_SOCKET_STATUS['state'] = True
-                    self._PULL_SOCKET_STATUS['latest_event'] = 'EVENT_HANDSHAKE_SUCCEEDED'
+                    print(f"\r[{socket_name} Socket] >> {evt['description']}", end='', flush=True)
                     
-                print(f"[{socket_name} Socket] >> ..ready for action!\n")
+                    # Set socket status on HANDSHAKE
+                    if evt['event'] == 4096:        # EVENT_HANDSHAKE_SUCCEEDED
+                        
+                        if socket_name == "PUSH":
+                            self._PUSH_SOCKET_STATUS['state'] = True
+                            self._PUSH_SOCKET_STATUS['latest_event'] = 'EVENT_HANDSHAKE_SUCCEEDED'
+                            
+                        elif socket_name == "PULL":
+                            self._PULL_SOCKET_STATUS['state'] = True
+                            self._PULL_SOCKET_STATUS['latest_event'] = 'EVENT_HANDSHAKE_SUCCEEDED'
+                            
+                        print(f"\n[{socket_name} Socket] >> ..ready for action!\n")
+                            
+                    else:    
+                        # Update 'latest_event'
+                        if socket_name == "PUSH":
+                            self._PUSH_SOCKET_STATUS['state'] = False
+                            self._PUSH_SOCKET_STATUS['latest_event'] = evt['description']
+                            
+                        elif socket_name == "PULL":
+                            self._PULL_SOCKET_STATUS['state'] = False
+                            self._PULL_SOCKET_STATUS['latest_event'] = evt['description']
+                
+                    if evt['event'] == zmq.EVENT_MONITOR_STOPPED:
+                        break
                     
-            else:    
-                # Update 'latest_event'
-                if socket_name == "PUSH":
-                    self._PUSH_SOCKET_STATUS['state'] = False
-                    self._PUSH_SOCKET_STATUS['latest_event'] = evt['description']
-                    
-                elif socket_name == "PULL":
-                    self._PULL_SOCKET_STATUS['state'] = False
-                    self._PULL_SOCKET_STATUS['latest_event'] = evt['description']
-            
-            # Exit event
-            if evt['event'] == zmq.EVENT_MONITOR_STOPPED:
-                break
-            
+                except Exception as ex:
+                    _exstr = "Exception Type {0}. Args:\n{1!r}"
+                    _msg = _exstr.format(type(ex).__name__, ex.args)
+                    print(_msg)
+               
         # Close Monitor Socket
         monitor_socket.close()
-        print("\n[KERNEL] ZeroMQ Socket Event Monitor Thread DONE!")
-    
+        
+        print(f"\n++ [KERNEL] {{socket_name}} _DWX_ZMQ_EVENT_MONITOR_() Signing Out ++")
+            
     ##########################################################################
     
     def _DWX_ZMQ_HEARTBEAT_(self):
