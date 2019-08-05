@@ -160,12 +160,7 @@ class DWX_ZeroMQ_Connector():
             
             self._PULL_Monitor_Thread.daemon = True
             self._PULL_Monitor_Thread.start()
-        
-    ##########################################################################
-    
-    def __del__(self):
-        self._DWX_ZMQ_SHUTDOWN_()
-    
+       
     ##########################################################################
     
     def _DWX_ZMQ_SHUTDOWN_(self):
