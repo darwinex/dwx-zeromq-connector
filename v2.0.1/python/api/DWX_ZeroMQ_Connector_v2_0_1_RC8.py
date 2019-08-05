@@ -176,11 +176,11 @@ class DWX_ZeroMQ_Connector():
         # Unregister sockets from Poller
         self._poller.unregister(self._PULL_SOCKET)
         self._poller.unregister(self._SUB_SOCKET)
-        print("[KERNEL] Sockets unregistered from ZMQ Poller()!")
+        print("\n++ [KERNEL] Sockets unregistered from ZMQ Poller()! ++")
         
         # Terminate context 
         self._ZMQ_CONTEXT.destroy(0)
-        print("[KERNEL] ZeroMQ Context Terminated.. everything was correctly shut down! :)")
+        print("\n++ [KERNEL] ZeroMQ Context Terminated.. shut down safely complete! :)")
         
     ##########################################################################
     
@@ -595,7 +595,7 @@ class DWX_ZeroMQ_Connector():
         # Close Monitor Socket
         monitor_socket.close()
         
-        print(f"\n++ [KERNEL] {{socket_name}} _DWX_ZMQ_EVENT_MONITOR_() Signing Out ++")
+        print(f"\n++ [KERNEL] {socket_name} _DWX_ZMQ_EVENT_MONITOR_() Signing Out ++")
             
     ##########################################################################
     
