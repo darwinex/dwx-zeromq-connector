@@ -2,7 +2,7 @@
 //|     DWX_ZeroMQ_Server_v2.0.1_RC8.mq4
 //|     @author: Darwinex Labs (www.darwinex.com)
 //|    
-//|     Last Updated: August 02, 2019
+//|     Last Updated: September 14, 2019
 //|
 //|     Copyright (c) 2017-2019, Darwinex. All rights reserved.
 //|    
@@ -196,7 +196,8 @@ void MessageHandler(ZmqMsg &_request) {
       ParseZmqMessage(dataStr, components);
       
       // Interpret data
-      InterpretZmqMessage(&pushSocket, components);
+      // InterpretZmqMessage(&pushSocket, components);
+      InterpretZmqMessage(pushSocket, components);
       
    }
 }
