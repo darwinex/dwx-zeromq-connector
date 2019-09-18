@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 """
     DWX_ZMQ_Strategy.py
     --
@@ -12,16 +13,11 @@
     You may obtain a copy of the License at:    
     https://opensource.org/licenses/BSD-3-Clause
 """
+import sys
 import os
 
-#############################################################################
-#############################################################################
-# _path = '<PATH_TO_ROOT_DIR_CONTAINING_DWX_ZEROMQ_CONNECTOR>'
-os.chdir(_path)
-#############################################################################
-#############################################################################
-
-from api.DWX_ZeroMQ_Connector_v2_0_1_RC8 import DWX_ZeroMQ_Connector
+sys.path.append('../../../..')
+from api.DWX_ZeroMQ_Connector_v2_0_2_RC1 import DWX_ZeroMQ_Connector
 from examples.template.modules.DWX_ZMQ_Execution import DWX_ZMQ_Execution
 from examples.template.modules.DWX_ZMQ_Reporting import DWX_ZMQ_Reporting
 
@@ -38,6 +34,8 @@ class DWX_ZMQ_Strategy(object):
                            ('STOXX50E',0.10),
                            ('XAUUSD',0.01)],
                  _broker_gmt=3,                 # Darwinex GMT offset
+                 _pulldata_handlers = [],       # Handlers to process data received through PULL port.
+                 _subdata_handlers = [],        # Handlers to process data received through SUB port.
                  _verbose=False):               # Print ZeroMQ messages
                  
         self._name = _name
@@ -45,7 +43,9 @@ class DWX_ZMQ_Strategy(object):
         self._broker_gmt = _broker_gmt
         
         # Not entirely necessary here.
-        self._zmq = DWX_ZeroMQ_Connector(_verbose=_verbose)
+        self._zmq = DWX_ZeroMQ_Connector(_pulldata_handlers=_pulldata_handlers,
+                                         _subdata_handlers=_subdata_handlers,
+                                         _verbose=_verbose)
         
         # Modules
         self._execution = DWX_ZMQ_Execution(self._zmq)

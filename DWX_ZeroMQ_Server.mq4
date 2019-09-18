@@ -1,9 +1,7 @@
 //+--------------------------------------------------------------+
-//|     DWX_ZeroMQ_Server_v2.0.1_RC8.mq4
+//|     DWX_ZeroMQ_Server_v2.0.2_RC8.mq4
 //|     @author: Darwinex Labs (www.darwinex.com)
 //|    
-//|     Last Updated: September 14, 2019
-//|
 //|     Copyright (c) 2017-2019, Darwinex. All rights reserved.
 //|    
 //|     Licensed under the BSD 3-Clause License, you may not use this file except 
@@ -14,7 +12,7 @@
 //+--------------------------------------------------------------+
 #property copyright "Copyright 2017-2019, Darwinex Labs."
 #property link      "https://www.darwinex.com/"
-#property version   "2.0.1"
+#property version   "2.0.2"
 #property strict
 
 // Required: MQL-ZMQ from https://github.com/dingmaotu/mql-zmq
@@ -36,21 +34,15 @@ extern double MaximumLotSize = 0.01;
 extern int MaximumSlippage = 3;
 extern bool DMA_MODE = true;
 
-extern string t1 = "--- ZeroMQ Configuration ---";
-extern bool Publish_MarketData = false;
+/** Now, MarketData and MarketRates flags can change in real time, according with
+ *  registered symbols and instruments.
+ */
+//extern string t1 = "--- ZeroMQ Configuration ---";
+bool Publish_MarketData  = false;
+bool Publish_MarketRates = false;
 
-string Publish_Symbols[7] = {
-   "EURUSD","GBPUSD","USDJPY","USDCAD","AUDUSD","NZDUSD","USDCHF"
-};
-
-/*
-string Publish_Symbols[28] = {
-   "EURUSD","EURGBP","EURAUD","EURNZD","EURJPY","EURCHF","EURCAD",
-   "GBPUSD","AUDUSD","NZDUSD","USDJPY","USDCHF","USDCAD","GBPAUD",
-   "GBPNZD","GBPJPY","GBPCHF","GBPCAD","AUDJPY","CHFJPY","CADJPY",
-   "AUDNZD","AUDCHF","AUDCAD","NZDJPY","NZDCHF","NZDCAD","CADCHF"
-};
-*/
+// Dynamic array initialized at OnInit(). Can be updated by TRACK_PRICES requests from client peers
+string Publish_Symbols[];
 
 // CREATE ZeroMQ Context
 Context context(PROJECT_NAME);
@@ -68,42 +60,115 @@ Socket pubSocket(context, ZMQ_PUB);
 uchar _data[];
 ZmqMsg request;
 
+/**
+ * Class definition for an specific instrument: the tuple (symbol,timeframe)
+ */
+class Instrument{
+public:  
+                
+    //--------------------------------------------------------------
+    /** Instrument constructor */
+    Instrument(){ _symbol = ""; _name = ""; _timeframe = PERIOD_CURRENT; _last_pub_rate =0;}    
+                 
+    //--------------------------------------------------------------
+    /** Getters */
+    string          symbol()    { return _symbol; }
+    ENUM_TIMEFRAMES timeframe() { return _timeframe; }
+    string          name()      { return _name; }
+    datetime        getLastPublishTimestamp() { return _last_pub_rate; }
+    /** Setters */
+    void            setLastPublishTimestamp(datetime tmstmp) { _last_pub_rate = tmstmp; }
+   
+   //--------------------------------------------------------------
+    /** Setup instrument with symbol and timeframe descriptions
+     *  @param arg_symbol Symbol
+     *  @param arg_timeframe Timeframe
+     */
+    void setup(string arg_symbol, ENUM_TIMEFRAMES arg_timeframe){
+        _symbol = arg_symbol;
+        _timeframe = arg_timeframe;
+        _name  = _symbol + "_" + GetTimeframeText(_timeframe);
+        _last_pub_rate = 0;
+    }
+                
+    //--------------------------------------------------------------
+    /** Get last N MqlRates from this instrument (symbol-timeframe)
+     *  @param rates Receives last 'count' rates
+     *  @param count Number of requested rates
+     *  @return Number of returned rates
+     */
+    int GetRates(MqlRates& rates[], int count){
+        // ensures that symbol is setup
+        if(StringLen(_symbol) > 0){
+            return CopyRates(_symbol, _timeframe, 0, count, rates);
+        }
+        return 0;
+    }
+    
+protected:
+    string _name;                //!< Instrument descriptive name
+    string _symbol;              //!< Symbol
+    ENUM_TIMEFRAMES _timeframe;  //!< Timeframe
+    datetime _last_pub_rate;     //!< Timestamp of the last published OHLC rate. Default = 0 (1 Jan 1970)
+ 
+};
+
+// Array of instruments whose rates will be published if Publish_MarketRates = True. It is initialized at OnInit() and
+// can be updated through TRACK_RATES request from client peers.
+Instrument Publish_Instruments[];
+
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
-int OnInit()
-  {
-//---
+int OnInit() {
+    //---
+    
+//    // Default symbol list. Can be modified through TRACK_PRICES request from client side.
+//    ArrayResize(Publish_Symbols, 1);
+//    Publish_Symbols[0] = "EURAUD";
+//    
+//    // Default instrument list. Can be modified through TRACK_RATES request from client side.
+//    ArrayResize(Publish_Instruments, 1);
+//    Publish_Instruments[0].setup("EURAUD", PERIOD_M1);
 
-   EventSetMillisecondTimer(MILLISECOND_TIMER);     // Set Millisecond Timer to get client socket input
+    EventSetMillisecondTimer(MILLISECOND_TIMER);     // Set Millisecond Timer to get client socket input
    
-   context.setBlocky(false);
+    context.setBlocky(false);
    
-   /* Set Socket Options */
+    // Send responses to PULL_PORT that client is listening on.   
+    if(!pushSocket.bind(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PULL_PORT))){
+        Print("[PUSH] ####ERROR#### Binding MT4 Server to Socket on Port " + IntegerToString(PULL_PORT) + "..");
+        return(INIT_FAILED);
+    }
+    else{
+        Print("[PUSH] Binding MT4 Server to Socket on Port " + IntegerToString(PULL_PORT) + "..");
+        pushSocket.setSendHighWaterMark(1);
+        pushSocket.setLinger(0);
+    }
    
-   // Send responses to PULL_PORT that client is listening on.
-   pushSocket.setSendHighWaterMark(1);
-   pushSocket.setLinger(0);
-   Print("[PUSH] Binding MT4 Server to Socket on Port " + IntegerToString(PULL_PORT) + "..");
-   pushSocket.bind(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PULL_PORT));
+    // Receive commands from PUSH_PORT that client is sending to.     
+    if(!pullSocket.bind(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PUSH_PORT))){
+        Print("[PULL] ####ERROR#### Binding MT4 Server to Socket on Port " + IntegerToString(PUSH_PORT) + "..");
+        return(INIT_FAILED);
+    }
+    else{
+        Print("[PULL] Binding MT4 Server to Socket on Port " + IntegerToString(PUSH_PORT) + "..");
+        pullSocket.setReceiveHighWaterMark(1);   
+        pullSocket.setLinger(0); 
+    }
    
-   // Receive commands from PUSH_PORT that client is sending to.
-   pullSocket.setReceiveHighWaterMark(1);
-   pullSocket.setLinger(0);
-   Print("[PULL] Binding MT4 Server to Socket on Port " + IntegerToString(PUSH_PORT) + "..");   
-   pullSocket.bind(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PUSH_PORT));
-   
-   if (Publish_MarketData == true)
-   {
-      // Send new market data to PUB_PORT that client is subscribed to.
-      pubSocket.setSendHighWaterMark(1);
-      pubSocket.setLinger(0);
-      Print("[PUB] Binding MT4 Server to Socket on Port " + IntegerToString(PUB_PORT) + "..");
-      pubSocket.bind(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PUB_PORT));
-   }
-   
-//---
-   return(INIT_SUCCEEDED);
+    // Send new market data to PUB_PORT that client is subscribed to.      
+    if(!pubSocket.bind(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PUB_PORT))){
+        Print("[PUB] ####ERROR#### Binding MT4 Server to Socket on Port " + IntegerToString(PUB_PORT) + "..");
+        return(INIT_FAILED);
+    }
+    else{
+        Print("[PUB] Binding MT4 Server to Socket on Port " + IntegerToString(PUB_PORT) + "..");
+        pubSocket.setSendHighWaterMark(1);
+        pubSocket.setLinger(0);
+    }
+         
+    return(INIT_SUCCEEDED);
   }
 //+------------------------------------------------------------------+
 //| Expert deinitialization function                                 |
@@ -114,20 +179,18 @@ void OnDeinit(const int reason)
     
    Print("[PUSH] Unbinding MT4 Server from Socket on Port " + IntegerToString(PULL_PORT) + "..");
    pushSocket.unbind(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PULL_PORT));
-   pushSocket.disconnect(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PULL_PORT));
    
    Print("[PULL] Unbinding MT4 Server from Socket on Port " + IntegerToString(PUSH_PORT) + "..");
    pullSocket.unbind(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PUSH_PORT));
-   pullSocket.disconnect(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PUSH_PORT));
    
-   if (Publish_MarketData == true)
+   if (Publish_MarketData == TRUE || Publish_MarketRates == TRUE)
    {
       Print("[PUB] Unbinding MT4 Server from Socket on Port " + IntegerToString(PUB_PORT) + "..");
       pubSocket.unbind(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PUB_PORT));
-      pubSocket.disconnect(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PUB_PORT));
    }
    
-   // Destroy ZeroMQ Context
+   // Shutdown ZeroMQ Context
+   context.shutdown();
    context.destroy(0);
    
    EventKillTimer();
@@ -141,18 +204,48 @@ void OnTick()
    /*
       Use this OnTick() function to send market data to subscribed client.
    */
-   
-   if(CheckServerStatus() == true)
+   if(!IsStopped())
    {
-      if(Publish_MarketData == true)
-      {
-         for(int s = 0; s < ArraySize(Publish_Symbols); s++)
-         {
-            string _tick = GetBidAsk(Publish_Symbols[s]);
-            Print("Sending " + Publish_Symbols[s] + " " + _tick + " to PUB Socket");
-            
-            InformPullClient(pubSocket, StringFormat("%s %s", Publish_Symbols[s], _tick));
-         }
+      // Python clients can subscribe to a price feed for each tracked symbol
+      if(Publish_MarketData == TRUE) {
+        for(int s = 0; s < ArraySize(Publish_Symbols); s++) {
+          string _tick = GetBidAsk(Publish_Symbols[s]);            
+          // publish: topic=symbol msg=tick_data    
+          ZmqMsg reply(StringFormat("%s %s", Publish_Symbols[s], _tick));
+          Print("Sending PRICE [" + reply.getData() + "] to PUB Socket");
+          if(!pubSocket.send(reply, true)){
+            Print("###ERROR### Sending price");
+          }
+        }
+      }
+      
+      // Python clients can also subscribe to a rates feed for each tracked instrument
+      if(Publish_MarketRates == TRUE){
+        for(int s = 0; s < ArraySize(Publish_Instruments); s++) {
+            MqlRates curr_rate[];
+            int count = Publish_Instruments[s].GetRates(curr_rate, 1);
+            // if last rate is returned and its timestamp is greater than the last published...
+            if(count > 0 && Publish_Instruments[s].getLastPublishTimestamp() < curr_rate[0].time){
+                // then send a new pub message with this new rate
+                string _rates = StringFormat("%u;%f;%f;%f;%f;%d;%d;%d",
+                                    curr_rate[0].time,
+                                    curr_rate[0].open, 
+                                    curr_rate[0].high, 
+                                    curr_rate[0].low, 
+                                    curr_rate[0].close, 
+                                    curr_rate[0].tick_volume, 
+                                    curr_rate[0].spread, 
+                                    curr_rate[0].real_volume);                
+                ZmqMsg reply(StringFormat("%s %s", Publish_Instruments[s].name(), _rates));
+                Print("Sending Rates @"+TimeToStr(curr_rate[0].time) + " [" + reply.getData() + "] to PUB Socket");
+                if(!pubSocket.send(reply, true)){
+                    Print("###ERROR### Sending rate");            
+                }
+                // updates the timestamp
+                Publish_Instruments[s].setLastPublishTimestamp(curr_rate[0].time);
+                
+          }
+        }
       }
    }
 }
@@ -167,20 +260,34 @@ void OnTimer()
    /*
       Use this OnTimer() function to get and respond to commands
    */
-   if(CheckServerStatus() == true)
+   
+   // Get client's response, but don't block.
+   pullSocket.recv(request, true);
+   
+   if (request.size() > 0)
    {
-      // Get client's response, but don't block.
-      pullSocket.recv(request, true);
+      // Wait 
+      // pullSocket.recv(request,false);
       
-      if (request.size() > 0)
-         MessageHandler(request);
+      // MessageHandler() should go here.   
+      ZmqMsg reply = MessageHandler(request);
+      
+      // Send response, and block
+      // pushSocket.send(reply);
+      
+      // Send response, but don't block
+      if(!pushSocket.send(reply, true)){
+        Print("###ERROR### Sending message");
+      }
    }
 }
-//+------------------------------------------------------------------+
 
-// ZmqMsg MessageHandler(ZmqMsg &_request) {
-void MessageHandler(ZmqMsg &_request) {
-      
+//+------------------------------------------------------------------+
+ZmqMsg MessageHandler(ZmqMsg &_request) {
+   
+   // Output object
+   ZmqMsg reply;
+   
    // Message components for later.
    string components[11];
    
@@ -190,21 +297,28 @@ void MessageHandler(ZmqMsg &_request) {
       ArrayResize(_data, _request.size());
       _request.getData(_data);
       string dataStr = CharArrayToString(_data);
-      Print(dataStr);
       
       // Process data
       ParseZmqMessage(dataStr, components);
       
       // Interpret data
-      // InterpretZmqMessage(&pushSocket, components);
-      InterpretZmqMessage(pushSocket, components);
+      InterpretZmqMessage(&pushSocket, components);
       
    }
+   else {
+      // NO DATA RECEIVED
+   }
+   
+   return(reply);
 }
 
+
+//+------------------------------------------------------------------+
 // Interpret Zmq Message and perform actions
 void InterpretZmqMessage(Socket &pSocket, string &compArray[]) {
 
+   // Print("ZMQ: Interpreting Message..");
+   
    // Message Structures:
    
    // 1) Trading
@@ -219,11 +333,23 @@ void InterpretZmqMessage(Socket &pSocket, string &compArray[]) {
    
    // 2.2) DATA|SYMBOL|TIMEFRAME|START_DATETIME|END_DATETIME
    
+   // 2.3) HIST|SYMBOL|TIMEFRAME|START_DATETIME|END_DATETIME
+   
+   // 3) Instruments configuration
+   
+   // 3.1) TRACK_PRICES|SYMBOL_1|SYMBOL_2|...|SYMBOL_N  -> List of symbols to receive real-time price updates (bid-ask)
+
+   // 3.2) TRACK_RATES|INSTRUMENT_1|INSTRUMENT_2|...|INSTRUMENT_N  -> List of instruments to receive OHLC rates
+           // Note: Instruments are bilt with format: SYMBOL_TIMEFRAME for example:
+           //       Symbol: EURUSD, Timeframe: PERIOD_M1 ----> Instrument = "EURUSD_M1"          
+           //       Symbol: GDAXI,  Timeframe: PERIOD_H4 ----> Instrument = "GDAXI_H4"          
+  
+
    // NOTE: datetime has format: D'2015.01.01 00:00'
    
    /*
-      compArray[0] = TRADE or RATES
-      If RATES -> compArray[1] = Symbol
+      compArray[0] = TRADE, RATES, DATA, HIST
+      If RATES,DATA,HIST -> compArray[1] = Symbol
       
       If TRADE ->
          compArray[0] = TRADE
@@ -252,11 +378,6 @@ void InterpretZmqMessage(Socket &pSocket, string &compArray[]) {
    
    int switch_action = 0;
    
-   /* 02-08-2019 10:41 CEST - HEARTBEAT */
-   if(compArray[0] == "HEARTBEAT")
-      InformPullClient(pSocket, "{'_action': 'heartbeat', '_response': 'loud and clear!'}");
-      
-   /* Process Messages */
    if(compArray[0] == "TRADE" && compArray[1] == "OPEN")
       switch_action = 1;
    if(compArray[0] == "TRADE" && compArray[1] == "MODIFY")
@@ -273,146 +394,141 @@ void InterpretZmqMessage(Socket &pSocket, string &compArray[]) {
       switch_action = 7;
    if(compArray[0] == "DATA")
       switch_action = 8;
+   if(compArray[0] == "HIST")
+      switch_action = 9;
+   if(compArray[0] == "TRACK_PRICES")
+      switch_action = 10;
+   if(compArray[0] == "TRACK_RATES")
+      switch_action = 11;
    
-   /* Setup processing variables */
    string zmq_ret = "";
    string ret = "";
    int ticket = -1;
-   bool ans = false;
+   bool ans = FALSE;
    
-   /****************************
-    * PERFORM SOME CHECKS HERE *
-    ****************************/
-   if (CheckOpsStatus(pSocket, switch_action) == true)
+   switch(switch_action) 
    {
-      switch(switch_action) 
-      {
-         case 1: // OPEN TRADE
-            
-            zmq_ret = "{";
-            
-            // Function definition:
-            ticket = DWX_OpenOrder(compArray[3], StrToInteger(compArray[2]), StrToDouble(compArray[8]), 
-                                    StrToDouble(compArray[4]), StrToInteger(compArray[5]), StrToInteger(compArray[6]), 
-                                    compArray[7], StrToInteger(compArray[9]), zmq_ret);
-                                    
-            // Send TICKET back as JSON
-            InformPullClient(pSocket, zmq_ret + "}");
-            
-            break;
-            
-         case 2: // MODIFY SL/TP
+      case 1: // OPEN TRADE
          
-            zmq_ret = "{'_action': 'MODIFY'";
-            
-            // Function definition:
-            ans = DWX_SetSLTP(StrToInteger(compArray[10]), StrToDouble(compArray[5]), StrToDouble(compArray[6]), 
-                              StrToInteger(compArray[9]), StrToInteger(compArray[2]), StrToDouble(compArray[4]), 
-                              compArray[3], 3, zmq_ret);
-            
-            InformPullClient(pSocket, zmq_ret + "}");
-            
-            break;
-            
-         case 3: // CLOSE TRADE
+         zmq_ret = "{";
          
-            zmq_ret = "{";
-            
-            // IMPLEMENT CLOSE TRADE LOGIC HERE
-            DWX_CloseOrder_Ticket(StrToInteger(compArray[10]), zmq_ret);
-            
-            InformPullClient(pSocket, zmq_ret + "}");
-            
-            break;
+         // Function definition:
+         ticket = DWX_OpenOrder(compArray[3], StrToInteger(compArray[2]), StrToDouble(compArray[8]), 
+                                 StrToDouble(compArray[4]), StrToInteger(compArray[5]), StrToInteger(compArray[6]), 
+                                 compArray[7], StrToInteger(compArray[9]), zmq_ret);
+                                 
+         // Send TICKET back as JSON
+         InformPullClient(pSocket, zmq_ret + "}");
          
-         case 4: // CLOSE PARTIAL
+         break;
          
-            zmq_ret = "{";
-            
-            ans = DWX_ClosePartial(StrToDouble(compArray[8]), zmq_ret, StrToInteger(compArray[10]));
-               
-            InformPullClient(pSocket, zmq_ret + "}");
-            
-            break;
-            
-         case 5: // CLOSE MAGIC
+      case 2: // MODIFY SL/TP
+      
+         zmq_ret = "{'_action': 'MODIFY'";
          
-            zmq_ret = "{";
-            
-            DWX_CloseOrder_Magic(StrToInteger(compArray[9]), zmq_ret);
-               
-            InformPullClient(pSocket, zmq_ret + "}");
-            
-            break;
-            
-         case 6: // CLOSE ALL ORDERS
+         // Function definition:
+         ans = DWX_SetSLTP(StrToInteger(compArray[10]), StrToDouble(compArray[5]), StrToDouble(compArray[6]), 
+                           StrToInteger(compArray[9]), StrToInteger(compArray[2]), StrToDouble(compArray[4]), 
+                           compArray[3], 3, zmq_ret);
          
-            zmq_ret = "{";
-            
-            DWX_CloseAllOrders(zmq_ret);
-               
-            InformPullClient(pSocket, zmq_ret + "}");
-            
-            break;
+         InformPullClient(pSocket, zmq_ret + "}");
          
-         case 7: // GET OPEN ORDERS
+         break;
          
-            zmq_ret = "{";
+      case 3: // CLOSE TRADE
+      
+         zmq_ret = "{";
+         
+         // IMPLEMENT CLOSE TRADE LOGIC HERE
+         DWX_CloseOrder_Ticket(StrToInteger(compArray[10]), zmq_ret);
+         
+         InformPullClient(pSocket, zmq_ret + "}");
+         
+         break;
+      
+      case 4: // CLOSE PARTIAL
+      
+         zmq_ret = "{";
+         
+         ans = DWX_ClosePartial(StrToDouble(compArray[8]), zmq_ret, StrToInteger(compArray[10]));
             
-            DWX_GetOpenOrders(zmq_ret);
-               
-            InformPullClient(pSocket, zmq_ret + "}");
+         InformPullClient(pSocket, zmq_ret + "}");
+         
+         break;
+         
+      case 5: // CLOSE MAGIC
+      
+         zmq_ret = "{";
+         
+         DWX_CloseOrder_Magic(StrToInteger(compArray[9]), zmq_ret);
             
-            break;
-               
-         case 8: // DATA REQUEST
+         InformPullClient(pSocket, zmq_ret + "}");
+         
+         break;
+         
+      case 6: // CLOSE ALL ORDERS
+      
+         zmq_ret = "{";
+         
+         DWX_CloseAllOrders(zmq_ret);
             
-            zmq_ret = "{";
+         InformPullClient(pSocket, zmq_ret + "}");
+         
+         break;
+      
+      case 7: // GET OPEN ORDERS
+      
+         zmq_ret = "{";
+         
+         DWX_GetOpenOrders(zmq_ret);
             
-            DWX_GetData(compArray, zmq_ret);
+         InformPullClient(pSocket, zmq_ret + "}");
+         
+         break;
             
-            InformPullClient(pSocket, zmq_ret + "}");
-            
-            break;
-            
-         default: 
-            break;
-      }
+      case 8: // DATA REQUEST
+         
+         zmq_ret = "{";
+         
+         DWX_GetData(compArray, zmq_ret);
+         
+         InformPullClient(pSocket, zmq_ret + "}");
+         
+         break;
+           
+      case 9: // HISTORIC REQUEST
+         
+         zmq_ret = "{";
+         
+         DWX_GetHist(compArray, zmq_ret);
+         
+         InformPullClient(pSocket, zmq_ret + "}");
+         
+         break;
+           
+      case 10: // SETUP LIST OF SYMBOLS TO TRACK PRICES
+         
+         zmq_ret = "{";
+         
+         DWX_SetSymbolList(compArray, zmq_ret);
+         
+         InformPullClient(pSocket, zmq_ret + "}");
+         
+         break;
+           
+      case 11: // SETUP LIST OF INSTRUMENTS TO TRACK RATES
+         
+         zmq_ret = "{";
+         
+         DWX_SetInstrumentList(compArray, zmq_ret);
+         
+         InformPullClient(pSocket, zmq_ret + "}");
+         
+         break;
+         
+      default: 
+         break;
    }
-}
-
-// Check if operations are permitted
-bool CheckOpsStatus(Socket &pSocket, int sFlag) {
-
-   if (sFlag <= 6) {
-   
-      if (!IsTradeAllowed()) {
-         InformPullClient(pSocket, "{'_response': 'TRADING_IS_NOT_ALLOWED__ABORTED_COMMAND'}");
-         return(false);
-      }
-      else if (!IsExpertEnabled()) {
-         InformPullClient(pSocket, "{'_response': 'EA_IS_DISABLED__ABORTED_COMMAND'}");
-         return(false);
-      }
-      else if (IsTradeContextBusy()) {
-         InformPullClient(pSocket, "{'_response': 'TRADE_CONTEXT_BUSY__ABORTED_COMMAND'}");
-         return(false);
-      }
-      else if (!IsDllsAllowed()) {
-         InformPullClient(pSocket, "{'_response': 'DLLS_DISABLED__ABORTED_COMMAND'}");
-         return(false);
-      }
-      else if (!IsLibrariesAllowed()) {
-         InformPullClient(pSocket, "{'_response': 'LIBS_DISABLED__ABORTED_COMMAND'}"); 
-         return(false);
-      }
-      else if (!IsConnected()) {
-         InformPullClient(pSocket, "{'_response': 'NO_BROKER_CONNECTION__ABORTED_COMMAND'}");
-         return(false);
-      }
-   }
-   
-   return(true);
 }
 
 // Parse Zmq Message
@@ -447,6 +563,8 @@ string GetBidAsk(string symbol) {
    return "";
 }
 
+
+//+------------------------------------------------------------------+
 // Get data for request datetime range
 void DWX_GetData(string& compArray[], string& zmq_ret) {
          
@@ -490,6 +608,130 @@ void DWX_GetData(string& compArray[], string& zmq_ret) {
          
 }
 
+//+------------------------------------------------------------------+
+// Get historic for request datetime range
+void DWX_GetHist(string& compArray[], string& zmq_ret) {
+         
+   // Format: HIST|SYMBOL|TIMEFRAME|START_DATETIME|END_DATETIME
+   
+   MqlRates rates_array[];
+      
+   // Get prices
+   int rates_count = CopyRates(compArray[1], 
+                  StrToInteger(compArray[2]), StrToTime(compArray[3]),
+                  StrToTime(compArray[4]), rates_array);
+         
+   zmq_ret = zmq_ret + "'_action': 'HIST'";
+               
+   // if data then forms response as json:
+   // {'_action: 'HIST', 
+   //  '_data':[{'time': 'YYYY:MM:DD,HH:MM:SS', 'open':0.0, 'high':0.0, 'low':0.0, 'close':0.0, 'tick_volume:0, 'spread':0, 'real_volume':0},
+   //           {...},
+   //           ...  
+   //          ]
+   // }
+   if (rates_count > 0) {
+      
+      zmq_ret = zmq_ret + ", '_data': [";
+      
+      // Construct string of rates and send to PULL client.
+      for(int i = 0; i < rates_count; i++ ) {
+         
+         if(i == 0)
+            zmq_ret = zmq_ret + "{'time':'" + TimeToString(rates_array[i].time) + "', 'open':" + DoubleToString(rates_array[i].open) + ", 'high':" + DoubleToString(rates_array[i].high) + ", 'low':" + DoubleToString(rates_array[i].low) + ", 'close':" + DoubleToString(rates_array[i].close) + ", 'tick_volume':" + IntegerToString(rates_array[i].tick_volume) + ", 'spread':" + IntegerToString(rates_array[i].spread)  + ", 'real_volume':" + IntegerToString(rates_array[i].real_volume) + "}";
+         else
+            zmq_ret = zmq_ret + ", {'time':'" + TimeToString(rates_array[i].time) + "', 'open':" + DoubleToString(rates_array[i].open) + ", 'high':" + DoubleToString(rates_array[i].high) + ", 'low':" + DoubleToString(rates_array[i].low) + ", 'close':" + DoubleToString(rates_array[i].close) + ", 'tick_volume':" + IntegerToString(rates_array[i].tick_volume) + ", 'spread':" + IntegerToString(rates_array[i].spread)  + ", 'real_volume':" + IntegerToString(rates_array[i].real_volume) + "}";
+       
+      }
+      
+      zmq_ret = zmq_ret + "]";
+      
+   }
+   // if NO data then forms response as json:
+   // {'_action: 'HIST', 
+   //  '_response': 'NOT_AVAILABLE'
+   // }
+   else {
+      zmq_ret = zmq_ret + ", " + "'_response': 'NOT_AVAILABLE'";
+   }         
+}
+
+
+//+------------------------------------------------------------------+
+// Set list of symbols to get real-time price data
+void DWX_SetSymbolList(string& compArray[], string& zmq_ret) {
+    
+    zmq_ret = zmq_ret + "'_action': 'TRACK_PRICES'";
+    
+    // Format: TRACK_PRICES|SYMBOL_1|SYMBOL_2|...|SYMBOL_N
+    string result = "Tracking PRICES from";
+    int _num_symbols = ArraySize(compArray) - 1;
+    if(_num_symbols > 0){
+        ArrayResize(Publish_Symbols, _num_symbols);
+        for(int s=0; s<_num_symbols; s++){
+            Publish_Symbols[s] = compArray[s+1];
+            result += " " + Publish_Symbols[s];
+        }
+        zmq_ret = zmq_ret + ", '_data': {'symbol_count':" + IntegerToString(_num_symbols) + "}";
+        Publish_MarketData = true;
+    }
+    else {
+        Publish_MarketData = false;
+        ArrayResize(Publish_Symbols, 1);
+        zmq_ret = zmq_ret + ", '_data': {'symbol_count': 0}";
+        result += " NONE";
+   }         
+   Print(result);
+}
+
+
+//+------------------------------------------------------------------+
+// Set list of instruments to get OHLC rates
+void DWX_SetInstrumentList(string& compArray[], string& zmq_ret) {
+    
+    zmq_ret = zmq_ret + "'_action': 'TRACK_RATES'";
+    
+    // Format: TRACK_RATES|SYMBOL_1|TIMEFRAME_1|SYMBOL_2|TIMEFRAME_2|...|SYMBOL_N|TIMEFRAME_N
+    string result = "Tracking RATES from";      
+    int _num_instruments = (ArraySize(compArray) - 1)/2;
+    if(_num_instruments > 0){
+        ArrayResize(Publish_Instruments, _num_instruments);        
+        for(int s=0; s<_num_instruments; s++){ 
+            Publish_Instruments[s].setup(compArray[(2*s)+1], (ENUM_TIMEFRAMES)StrToInteger(compArray[(2*s)+2]));
+            result += " " + Publish_Instruments[s].name();
+         }
+        zmq_ret = zmq_ret + ", '_data': {'instrument_count':" + IntegerToString(_num_instruments) + "}";
+        Publish_MarketRates = true;
+    }
+    else {
+        Publish_MarketRates = false;    
+        ArrayResize(Publish_Instruments, 1);           
+        zmq_ret = zmq_ret + ", '_data': {'instrument_count': 0}";
+        result += " NONE";
+   }         
+   Print(result);
+}
+
+
+//+------------------------------------------------------------------+
+// Get Timeframe from text
+string GetTimeframeText(ENUM_TIMEFRAMES tf){
+    // Standard timeframes
+    switch(tf){
+        case PERIOD_M1:    return "M1";
+        case PERIOD_M5:    return "M5";
+        case PERIOD_M15:   return "M15";
+        case PERIOD_M30:   return "M30";
+        case PERIOD_H1:    return "H1";
+        case PERIOD_H4:    return "H4";
+        case PERIOD_D1:    return "D1";
+        case PERIOD_W1:    return "W1";
+        case PERIOD_MN1:   return "MN1";
+        default:           return "UNKNOWN";
+    }
+}
+
+//+------------------------------------------------------------------+
 // Inform Client
 void InformPullClient(Socket& pSocket, string message) {
 
@@ -499,12 +741,7 @@ void InformPullClient(Socket& pSocket, string message) {
    
 }
 
-/*
- ############################################################################
- ############################################################################
- ############################################################################
-*/
-
+//+------------------------------------------------------------------+
 // OPEN NEW ORDER
 int DWX_OpenOrder(string _symbol, int _type, double _lots, double _price, double _SL, double _TP, string _comment, int _magic, string &zmq_ret) {
    
@@ -577,6 +814,7 @@ int DWX_OpenOrder(string _symbol, int _type, double _lots, double _price, double
    return(ticket);
 }
 
+//+------------------------------------------------------------------+
 // SET SL/TP
 bool DWX_SetSLTP(int ticket, double _SL, double _TP, int _magic, int _type, double _price, string _symbol, int retries, string &zmq_ret) {
    
@@ -589,35 +827,29 @@ bool DWX_SetSLTP(int ticket, double _SL, double _TP, int _magic, int _type, doub
     
       double vpoint  = MarketInfo(OrderSymbol(), MODE_POINT);
       int    vdigits = (int)MarketInfo(OrderSymbol(), MODE_DIGITS);
-      double mSL = NormalizeDouble(OrderOpenPrice()-_SL*dir_flag*vpoint,vdigits);
-      double mTP = NormalizeDouble(OrderOpenPrice()+_TP*dir_flag*vpoint,vdigits);
       
-      // if(OrderModify(ticket, OrderOpenPrice(), NormalizeDouble(OrderOpenPrice()-_SL*dir_flag*vpoint,vdigits), NormalizeDouble(OrderOpenPrice()+_TP*dir_flag*vpoint,vdigits), 0, 0)) {
-      if(OrderModify(ticket, OrderOpenPrice(), mSL, mTP, 0, 0)) {
-         // zmq_ret = zmq_ret + ", '_sl': " + DoubleToString(_SL) + ", '_tp': " + DoubleToString(_TP);
-         zmq_ret = zmq_ret + ", '_sl': " + DoubleToString(mSL) + ", '_tp': " + DoubleToString(mTP);
+      if(OrderModify(ticket, OrderOpenPrice(), NormalizeDouble(OrderOpenPrice()-_SL*dir_flag*vpoint,vdigits), NormalizeDouble(OrderOpenPrice()+_TP*dir_flag*vpoint,vdigits), 0, 0)) {
+         zmq_ret = zmq_ret + ", '_sl': " + DoubleToString(_SL) + ", '_tp': " + DoubleToString(_TP);
          return(true);
       } else {
          int error = GetLastError();
-         zmq_ret = zmq_ret + ", '_response': '" + IntegerToString(error) + "', '_response_value': '" + ErrorDescription(error) + "', '_sl_attempted': " + DoubleToString(NormalizeDouble(OrderOpenPrice()-_SL*dir_flag*vpoint,vdigits)) + ", '_tp_attempted': " + DoubleToString(NormalizeDouble(OrderOpenPrice()+_TP*dir_flag*vpoint,vdigits));
+         zmq_ret = zmq_ret + ", '_response': '" + IntegerToString(error) + "', '_response_value': '" + ErrorDescription(error) + "', '_sl_attempted': " + NormalizeDouble(OrderOpenPrice()-_SL*dir_flag*vpoint,vdigits) + ", '_tp_attempted': " + NormalizeDouble(OrderOpenPrice()+_TP*dir_flag*vpoint,vdigits);
    
          if(retries == 0) {
             RefreshRates();
             DWX_CloseAtMarket(-1, zmq_ret);
+            // int lastOrderErrorCloseTime = TimeCurrent();
          }
          
          return(false);
       }
-   }
-   else
-   {
-      zmq_ret = zmq_ret + ", '_response': 'NOT_FOUND'";
-   }
-       
+   }    
    
+   // return(true);
    return(false);
 }
 
+//+------------------------------------------------------------------+
 // CLOSE AT MARKET
 bool DWX_CloseAtMarket(double size, string &zmq_ret) {
 
@@ -643,49 +875,50 @@ bool DWX_CloseAtMarket(double size, string &zmq_ret) {
    return(false);
 }
 
+//+------------------------------------------------------------------+
 // CLOSE PARTIAL SIZE
 bool DWX_ClosePartial(double size, string &zmq_ret, int ticket = 0) {
-   
-   int error;
-   bool close_ret = False;
-   
-   // If the function is called directly, setup init() JSON here and get OrderSelect.
-   if(ticket != 0) {
-      zmq_ret = zmq_ret + "'_action': 'CLOSE', '_ticket': " + IntegerToString(ticket);
-      zmq_ret = zmq_ret + ", '_response': 'CLOSE_PARTIAL'";
-      int tmpRet = OrderSelect(ticket, SELECT_BY_TICKET);
-   }
-   
+
    RefreshRates();
    double priceCP;
+   
+   bool close_ret = False;
+   
+   if(OrderType() != OP_BUY && OrderType() != OP_SELL) {
+     return(true);
+   }
 
    if(OrderType() == OP_BUY) {
       priceCP = DWX_GetBid(OrderSymbol());
-   } else if (OrderType() == OP_SELL){
-      priceCP = DWX_GetAsk(OrderSymbol());
    } else {
-      return(true);
+      priceCP = DWX_GetAsk(OrderSymbol());
    }
- 
-   ticket = OrderTicket();
+
+   // If the function is called directly, setup init() JSON here.
+   if(ticket != 0) {
+      zmq_ret = zmq_ret + "'_action': 'CLOSE', '_ticket': " + IntegerToString(ticket);
+      zmq_ret = zmq_ret + ", '_response': 'CLOSE_PARTIAL'";
+   }
+   
+   int local_ticket = 0;
+   
+   if (ticket != 0)
+      local_ticket = ticket;
+   else
+      local_ticket = OrderTicket();
    
    if(size < 0.01 || size > OrderLots()) {
-      size = OrderLots();
-   }
-   close_ret = OrderClose(ticket, size, priceCP, MaximumSlippage);
-   
-   if (close_ret == true)
+      close_ret = OrderClose(local_ticket, OrderLots(), priceCP, MaximumSlippage);
+      zmq_ret = zmq_ret + ", '_close_price': " + DoubleToString(priceCP) + ", '_close_lots': " + DoubleToString(OrderLots());
+      return(close_ret);
+   } else {
+      close_ret = OrderClose(local_ticket, size, priceCP, MaximumSlippage);
       zmq_ret = zmq_ret + ", '_close_price': " + DoubleToString(priceCP) + ", '_close_lots': " + DoubleToString(size);
-   else
-   {
-      error = GetLastError();
-      zmq_ret = zmq_ret + ", '_response': '" + IntegerToString(error) + "', '_response_value': '" + ErrorDescription(error) + "'";
-   }
-      
-   return(close_ret);
-      
+      return(close_ret);
+   }   
 }
 
+//+------------------------------------------------------------------+
 // CLOSE ORDER (by Magic Number)
 void DWX_CloseOrder_Magic(int _magic, string &zmq_ret) {
 
@@ -735,6 +968,8 @@ void DWX_CloseOrder_Magic(int _magic, string &zmq_ret) {
 
 }
 
+
+//+------------------------------------------------------------------+
 // CLOSE ORDER (by Ticket)
 void DWX_CloseOrder_Ticket(int _ticket, string &zmq_ret) {
 
@@ -765,6 +1000,7 @@ void DWX_CloseOrder_Ticket(int _ticket, string &zmq_ret) {
 
 }
 
+//+------------------------------------------------------------------+
 // CLOSE ALL ORDERS
 void DWX_CloseAllOrders(string &zmq_ret) {
 
@@ -814,6 +1050,7 @@ void DWX_CloseAllOrders(string &zmq_ret) {
 
 }
 
+//+------------------------------------------------------------------+
 // GET OPEN ORDERS
 void DWX_GetOpenOrders(string &zmq_ret) {
 
@@ -841,6 +1078,7 @@ void DWX_GetOpenOrders(string &zmq_ret) {
 
 }
 
+//+------------------------------------------------------------------+
 // CHECK IF TRADE IS ALLOWED
 int DWX_IsTradeAllowed(int MaxWaiting_sec, string &zmq_ret) {
     
@@ -876,18 +1114,7 @@ int DWX_IsTradeAllowed(int MaxWaiting_sec, string &zmq_ret) {
     return(1);
 }
 
-bool CheckServerStatus() {
-
-   // Is _StopFlag == True, inform the client application
-   if (IsStopped()) {
-      InformPullClient(pullSocket, "{'_response': 'EA_IS_STOPPED'}");
-      return(false);
-   }
-   
-   // Default
-   return(true);
-}
-
+//+------------------------------------------------------------------+
 string ErrorDescription(int error_code)
   {
    string error_string;
@@ -995,7 +1222,6 @@ string ErrorDescription(int error_code)
   }
   
 //+------------------------------------------------------------------+
-
 double DWX_GetAsk(string symbol) {
    if(symbol == "NULL") {
       return(Ask);
@@ -1005,7 +1231,6 @@ double DWX_GetAsk(string symbol) {
 }
 
 //+------------------------------------------------------------------+
-
 double DWX_GetBid(string symbol) {
    if(symbol == "NULL") {
       return(Bid);
