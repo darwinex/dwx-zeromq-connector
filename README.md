@@ -347,6 +347,24 @@ Output:
 
 ## Video Tutorials
 
+**Step-by-Step Installation & Configuration Tutorials**
+
+1. [Introduction](https://www.youtube.com/watch?v=Qv04zPU7lxQ&list=PLv-cA-4O3y97vTpghgRqiPBjmpgWskYDl&index=1)
+
+1. [Dependencies](https://www.youtube.com/watch?v=YdlSwrKt9TU&list=PLv-cA-4O3y97vTpghgRqiPBjmpgWskYDl&index=2)
+
+1. [MetaTrader 4 Setup](https://www.youtube.com/watch?v=N0-aYLllK3E&list=PLv-cA-4O3y97vTpghgRqiPBjmpgWskYDl&index=3)
+
+1. [Programming Environment Setup](https://www.youtube.com/watch?v=ia1E5xczouc&list=PLv-cA-4O3y97vTpghgRqiPBjmpgWskYDl&index=4)
+
+1. [ZeroMQ Client Configuration](https://www.youtube.com/watch?v=qMNSr-Hiupk&list=PLv-cA-4O3y97vTpghgRqiPBjmpgWskYDl&index=5)
+
+1. [ZeroMQ Server Configuration](https://www.youtube.com/watch?v=ONBFOGsnijU&list=PLv-cA-4O3y97vTpghgRqiPBjmpgWskYDl&index=6)
+
+1. [Example Usage](https://www.youtube.com/watch?v=U2VdXdm2qlM&list=PLv-cA-4O3y97vTpghgRqiPBjmpgWskYDl&index=7)
+
+**The nuts & bolts of the DWX ZeroMQ Connector project**
+
 1. [How to Interface Python/R Trading Strategies with MetaTrader 4](https://www.youtube.com/watch?v=GGOajzvl860)
 
 1. [Algorithmic Trading via ZeroMQ: Trade Execution, Reporting & Management (Python to MetaTrader)](https://youtu.be/3nM0c2kG_Sw)
