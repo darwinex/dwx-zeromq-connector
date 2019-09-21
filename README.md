@@ -5,6 +5,10 @@
 
 ## Need help? Join the [Darwinex Collective Slack](https://join.slack.com/t/darwinex-collective/shared_invite/enQtNjg4MjA0ODUzODkyLWFiZWZlMDZjNGVmOGE2ZDBiZGI4ZWUxNjM5YTU0MjZkMTQ2NGZjNGIyN2QxZDY4NjUyZmVlNmU3N2E2NGE1Mjk) for code updates, Q&A and more.
 
+## About Darwinex
+
+[Darwinex](https://www.darwinex.com/?utm_source=github&utm_medium=zeromq-readme&utm_content=about-us-above-the-fold) is a **UK FCA-Regulated broker & technology provider**, helping traders trade the markets, develop their skills and build verifiable, investable track records. Our technology is bolted on to our Exchange **providing traders with regulatory cover to attract capital and charge a 20% success fee on investor profits.**
+
 ## Table of Contents
 * [Introduction](#introduction)
 * [Installation](#installation)
