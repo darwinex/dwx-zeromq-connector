@@ -7,7 +7,17 @@
 
 ## About Darwinex
 
-[Darwinex](https://www.darwinex.com/?utm_source=github&utm_medium=zeromq-readme&utm_content=about-us-above-the-fold) is a **UK FCA-Regulated broker & technology provider**, helping traders trade the markets, develop their skills and build verifiable, investable track records. Our technology is bolted on to our Exchange **providing traders with regulatory cover to attract capital and charge a 20% success fee on investor profits.**
+[Darwinex](https://www.darwinex.com/?utm_source=github&utm_medium=zeromq-readme&utm_content=about-us-above-the-fold) is a **UK FCA-Regulated broker & technology provider**, enabling traders to:
+
+1. Trade the markets on the best terms and competitive execution conditions 
+1. Develop their trading skills and build verifiable, investable track records
+1. Provide regulatory cover to attract capital and charge a 20% performance fee on investor profits
+
+**Please take a moment to read our Risk Disclosure [here](https://www.darwinex.com/legal/risk-disclaimer?utm_source=github&utm_medium=zeromq-readme&utm_content=about-us-above-the-fold)**
+
+**[Click here to visit our Trader Hall of Fame](https://www.darwinex.com/darwinia/hall-of-fame?utm_source=github&utm_medium=zeromq-readme&utm_content=about-us-above-the-fold)** * **ranked by Performance Fees earned (over 2M EUR paid to date)**
+
+**[Click here to Open a Darwinex Trading Account](https://www.darwinex.com/register?utm_source=github&utm_medium=zeromq-readme&utm_content=about-us-above-the-fold)**
 
 ## Table of Contents
 * [Introduction](#introduction)
