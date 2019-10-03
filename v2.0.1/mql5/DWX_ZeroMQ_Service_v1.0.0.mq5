@@ -149,13 +149,15 @@ bool ServiceInit(void)
    pushSocket.setSendHighWaterMark(1);
    pushSocket.setLinger(0);
    Print("[PUSH] Binding MT5 Server to Socket on Port "+IntegerToString(PULL_PORT)+"..");
-   init_result=init_result || pushSocket.bind(StringFormat("%s://%s:%d",ZEROMQ_PROTOCOL,HOSTNAME,PULL_PORT));
+   bool bind_result=pushSocket.bind(StringFormat("%s://%s:%d",ZEROMQ_PROTOCOL,HOSTNAME,PULL_PORT));
+   init_result=init_result || bind_result;
 
 // Receive commands from PUSH_PORT that client is sending to.
    pullSocket.setReceiveHighWaterMark(1);
    pullSocket.setLinger(0);
    Print("[PULL] Binding MT5 Server to Socket on Port "+IntegerToString(PUSH_PORT)+"..");
-   init_result=init_result || pullSocket.bind(StringFormat("%s://%s:%d",ZEROMQ_PROTOCOL,HOSTNAME,PUSH_PORT));
+   bind_result= pullSocket.bind(StringFormat("%s://%s:%d",ZEROMQ_PROTOCOL,HOSTNAME,PUSH_PORT));
+   init_result=init_result|| bind_result;
 
    if(Publish_MarketData==true)
      {
@@ -163,7 +165,8 @@ bool ServiceInit(void)
       pubSocket.setSendHighWaterMark(1);
       pubSocket.setLinger(0);
       Print("[PUB] Binding MT5 Server to Socket on Port "+IntegerToString(PUB_PORT)+"..");
-      init_result=init_result || pubSocket.bind(StringFormat("%s://%s:%d",ZEROMQ_PROTOCOL,HOSTNAME,PUB_PORT));
+      bind_result= pubSocket.bind(StringFormat("%s://%s:%d",ZEROMQ_PROTOCOL,HOSTNAME,PUB_PORT));
+      init_result=init_result|| bind_result;
 
       // Here last ticks timestamps for all 'Publish_Symbols' are collected.
       // See 'CollectAndPublish' function.
@@ -590,8 +593,15 @@ void DWX_GetTickData(string &compArray[],string &zmq_ret)
 // GET_TICK_DATA == 14
 // Format: 14|SYMBOL|START_DATETIME|END_DATETIME
 
-   datetime d0 = StringToTime(compArray[2]);
-   datetime d1 = StringToTime(compArray[3]);
+   datetime d0=0;
+   datetime d1=0;
+
+   if(compArray[2]!="0")
+      d0=StringToTime(compArray[2]);
+
+   if(compArray[3]!="0")
+      d1=StringToTime(compArray[3]);
+
    zmq_ret+="'_action': 'GET_TICK_DATA'";
    if(d0>0)
      {
@@ -607,6 +617,7 @@ void DWX_GetTickData(string &compArray[],string &zmq_ret)
         }
       else
         {
+         // If last argument == "0" get all ticks from d0 to the newest
          copied=CopyTicks(compArray[1],tck_array,COPY_TICKS_ALL,(ulong)(d0*1000));
         }
       // Error while using 'Copy' function
