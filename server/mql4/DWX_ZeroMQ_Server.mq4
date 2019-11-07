@@ -747,6 +747,25 @@ void DWX_SetInstrumentList(string& compArray[], string& zmq_ret) {
    Print(result);
 }
 
+//+------------------------------------------------------------------+
+/* Kindly contributed by GitHub contributor: @raulMrello (https://github.com/raulmrello) */
+// Get Timeframe from text
+string GetTimeframeText(ENUM_TIMEFRAMES tf){
+    // Standard timeframes
+    switch(tf){
+        case PERIOD_M1:    return "M1";
+        case PERIOD_M5:    return "M5";
+        case PERIOD_M15:   return "M15";
+        case PERIOD_M30:   return "M30";
+        case PERIOD_H1:    return "H1";
+        case PERIOD_H4:    return "H4";
+        case PERIOD_D1:    return "D1";
+        case PERIOD_W1:    return "W1";
+        case PERIOD_MN1:   return "MN1";
+        default:           return "UNKNOWN";
+    }
+}
+
 // Inform Client
 void InformPullClient(Socket& pSocket, string message) {
 
