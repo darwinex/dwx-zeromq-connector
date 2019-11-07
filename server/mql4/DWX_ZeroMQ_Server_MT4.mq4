@@ -337,8 +337,8 @@ void InterpretZmqMessage(Socket &pSocket, string &compArray[]) {
    // NOTE: datetime has format: D'2015.01.01 00:00'
    
    /*
-      compArray[0] = TRADE or RATES
-      If RATES -> compArray[1] = Symbol
+      compArray[0] = TRADE, RATES, DATA, HIST
+      If RATES,DATA,HIST -> compArray[1] = Symbol
       
       If TRADE ->
          compArray[0] = TRADE
