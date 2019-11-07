@@ -1,5 +1,5 @@
 //+--------------------------------------------------------------+
-//|     DWX_ZeroMQ_Server.mq4
+//|     DWX_ZeroMQ_Server_MT4.mq4
 //|     @author: Darwinex Labs (www.darwinex.com)
 //|    
 //|     Last Updated: November 07, 2019
@@ -14,13 +14,14 @@
 //+--------------------------------------------------------------+
 #property copyright "Copyright 2017-2019, Darwinex Labs."
 #property link      "https://www.darwinex.com/"
-#property version   "2.0.1"
+#property version   "2.0"
 #property strict
 
 // Required: MQL-ZMQ from https://github.com/dingmaotu/mql-zmq
 
 #include <Zmq/Zmq.mqh>
 
+extern string t1 = "--- ZeroMQ Configuration ---";
 extern string PROJECT_NAME = "DWX_ZeroMQ_Server";
 extern string ZEROMQ_PROTOCOL = "tcp";
 extern string HOSTNAME = "*";
@@ -36,7 +37,6 @@ extern double MaximumLotSize = 0.01;
 extern int MaximumSlippage = 3;
 extern bool DMA_MODE = true;
 
-extern string t1 = "--- ZeroMQ Configuration ---";
 bool Publish_MarketData  = false;
 bool Publish_MarketRates = false;
 
