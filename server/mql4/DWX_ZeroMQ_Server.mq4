@@ -190,6 +190,7 @@ void OnDeinit(const int reason)
    pullSocket.unbind(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PUSH_PORT));
    pullSocket.disconnect(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PUSH_PORT));
    
+   /* Kindly contributed by GitHub contributor: @raulMrello (https://github.com/raulmrello) */
    if (Publish_MarketData == TRUE || Publish_MarketRates == TRUE)
    {
       Print("[PUB] Unbinding MT4 Server from Socket on Port " + IntegerToString(PUB_PORT) + "..");
@@ -227,6 +228,7 @@ void OnTick()
         }
       }
       
+      /* Kindly contributed by GitHub contributor: @raulMrello (https://github.com/raulmrello) */
       // Python clients can also subscribe to a rates feed for each tracked instrument
       if(Publish_MarketRates == TRUE){
         for(int s = 0; s < ArraySize(Publish_Instruments); s++) {
@@ -320,6 +322,18 @@ void InterpretZmqMessage(Socket &pSocket, string &compArray[]) {
    
    // 2.2) DATA|SYMBOL|TIMEFRAME|START_DATETIME|END_DATETIME
    
+   /* Kindly contributed by GitHub contributor: @raulMrello (https://github.com/raulmrello) */
+   // 2.3) HIST|SYMBOL|TIMEFRAME|START_DATETIME|END_DATETIME
+   
+   // 3) Instruments configuration
+   
+   // 3.1) TRACK_PRICES|SYMBOL_1|SYMBOL_2|...|SYMBOL_N  -> List of symbols to receive real-time price updates (bid-ask)
+
+   // 3.2) TRACK_RATES|INSTRUMENT_1|INSTRUMENT_2|...|INSTRUMENT_N  -> List of instruments to receive OHLC rates
+           // Note: Instruments are bilt with format: SYMBOL_TIMEFRAME for example:
+           //       Symbol: EURUSD, Timeframe: PERIOD_M1 ----> Instrument = "EURUSD_M1"          
+           //       Symbol: GDAXI,  Timeframe: PERIOD_H4 ----> Instrument = "GDAXI_H4"          
+
    // NOTE: datetime has format: D'2015.01.01 00:00'
    
    /*
@@ -374,6 +388,12 @@ void InterpretZmqMessage(Socket &pSocket, string &compArray[]) {
       switch_action = 7;
    if(compArray[0] == "DATA")
       switch_action = 8;
+   if(compArray[0] == "HIST")
+      switch_action = 9;
+   if(compArray[0] == "TRACK_PRICES")
+      switch_action = 10;
+   if(compArray[0] == "TRACK_RATES")
+      switch_action = 11;
    
    /* Setup processing variables */
    string zmq_ret = "";
