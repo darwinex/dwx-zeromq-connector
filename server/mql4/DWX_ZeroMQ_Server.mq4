@@ -214,15 +214,46 @@ void OnTick()
    
    if(CheckServerStatus() == true)
    {
-      if(Publish_MarketData == true)
-      {
-         for(int s = 0; s < ArraySize(Publish_Symbols); s++)
-         {
-            string _tick = GetBidAsk(Publish_Symbols[s]);
-            Print("Sending " + Publish_Symbols[s] + " " + _tick + " to PUB Socket");
-            
-            InformPullClient(pubSocket, StringFormat("%s %s", Publish_Symbols[s], _tick));
-         }
+      // Python clients can subscribe to a price feed for each tracked symbol
+      if(Publish_MarketData == TRUE) {
+        for(int s = 0; s < ArraySize(Publish_Symbols); s++) {
+          string _tick = GetBidAsk(Publish_Symbols[s]);            
+          // publish: topic=symbol msg=tick_data    
+          ZmqMsg reply(StringFormat("%s %s", Publish_Symbols[s], _tick));
+          Print("Sending PRICE [" + reply.getData() + "] to PUB Socket");
+          if(!pubSocket.send(reply, true)){
+            Print("###ERROR### Sending price");
+          }
+        }
+      }
+      
+      // Python clients can also subscribe to a rates feed for each tracked instrument
+      if(Publish_MarketRates == TRUE){
+        for(int s = 0; s < ArraySize(Publish_Instruments); s++) {
+            MqlRates curr_rate[];
+            int count = Publish_Instruments[s].GetRates(curr_rate, 1);
+            // if last rate is returned and its timestamp is greater than the last published...
+            if(count > 0 && Publish_Instruments[s].getLastPublishTimestamp() < curr_rate[0].time){
+                // then send a new pub message with this new rate
+                string _rates = StringFormat("%u;%f;%f;%f;%f;%d;%d;%d",
+                                    curr_rate[0].time,
+                                    curr_rate[0].open, 
+                                    curr_rate[0].high, 
+                                    curr_rate[0].low, 
+                                    curr_rate[0].close, 
+                                    curr_rate[0].tick_volume, 
+                                    curr_rate[0].spread, 
+                                    curr_rate[0].real_volume);                
+                ZmqMsg reply(StringFormat("%s %s", Publish_Instruments[s].name(), _rates));
+                Print("Sending Rates @"+TimeToStr(curr_rate[0].time) + " [" + reply.getData() + "] to PUB Socket");
+                if(!pubSocket.send(reply, true)){
+                    Print("###ERROR### Sending rate");            
+                }
+                // updates the timestamp
+                Publish_Instruments[s].setLastPublishTimestamp(curr_rate[0].time);
+                
+          }
+        }
       }
    }
 }
