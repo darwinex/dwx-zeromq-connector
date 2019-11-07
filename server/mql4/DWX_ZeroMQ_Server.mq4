@@ -133,8 +133,16 @@ int OnInit()
    // Send responses to PULL_PORT that client is listening on.
    pushSocket.setSendHighWaterMark(1);
    pushSocket.setLinger(0);
-   Print("[PUSH] Binding MT4 Server to Socket on Port " + IntegerToString(PULL_PORT) + "..");
-   pushSocket.bind(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PULL_PORT));
+
+   if(!pushSocket.bind(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PULL_PORT)))
+   {
+      Print("[PUSH] ####ERROR#### Binding MT4 Server to Socket on Port " + IntegerToString(PULL_PORT) + "..");
+      return(INIT_FAILED);
+   }
+   else 
+   {
+      Print("[PUSH] Binding MT4 Server to Socket on Port " + IntegerToString(PULL_PORT) + "..");
+   }
    
    // Receive commands from PUSH_PORT that client is sending to.
    pullSocket.setReceiveHighWaterMark(1);
