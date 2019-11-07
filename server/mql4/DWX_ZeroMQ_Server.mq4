@@ -642,6 +642,55 @@ void DWX_GetData(string& compArray[], string& zmq_ret) {
          
 }
 
+//+------------------------------------------------------------------+
+/* Kindly contributed by GitHub contributor: @raulMrello (https://github.com/raulmrello) */
+// Get historic data for requested datetime range
+void DWX_GetHist(string& compArray[], string& zmq_ret) {
+         
+   // Format: HIST|SYMBOL|TIMEFRAME|START_DATETIME|END_DATETIME
+   
+   MqlRates rates_array[];
+      
+   // Get prices
+   int rates_count = CopyRates(compArray[1], 
+                  StrToInteger(compArray[2]), StrToTime(compArray[3]),
+                  StrToTime(compArray[4]), rates_array);
+         
+   zmq_ret = zmq_ret + "'_action': 'HIST'";
+               
+   // if data then forms response as json:
+   // {'_action: 'HIST', 
+   //  '_data':[{'time': 'YYYY:MM:DD,HH:MM:SS', 'open':0.0, 'high':0.0, 'low':0.0, 'close':0.0, 'tick_volume:0, 'spread':0, 'real_volume':0},
+   //           {...},
+   //           ...  
+   //          ]
+   // }
+   if (rates_count > 0) {
+      
+      zmq_ret = zmq_ret + ", '_data': [";
+      
+      // Construct string of rates and send to PULL client.
+      for(int i = 0; i < rates_count; i++ ) {
+         
+         if(i == 0)
+            zmq_ret = zmq_ret + "{'time':'" + TimeToString(rates_array[i].time) + "', 'open':" + DoubleToString(rates_array[i].open) + ", 'high':" + DoubleToString(rates_array[i].high) + ", 'low':" + DoubleToString(rates_array[i].low) + ", 'close':" + DoubleToString(rates_array[i].close) + ", 'tick_volume':" + IntegerToString(rates_array[i].tick_volume) + ", 'spread':" + IntegerToString(rates_array[i].spread)  + ", 'real_volume':" + IntegerToString(rates_array[i].real_volume) + "}";
+         else
+            zmq_ret = zmq_ret + ", {'time':'" + TimeToString(rates_array[i].time) + "', 'open':" + DoubleToString(rates_array[i].open) + ", 'high':" + DoubleToString(rates_array[i].high) + ", 'low':" + DoubleToString(rates_array[i].low) + ", 'close':" + DoubleToString(rates_array[i].close) + ", 'tick_volume':" + IntegerToString(rates_array[i].tick_volume) + ", 'spread':" + IntegerToString(rates_array[i].spread)  + ", 'real_volume':" + IntegerToString(rates_array[i].real_volume) + "}";
+       
+      }
+      
+      zmq_ret = zmq_ret + "]";
+      
+   }
+   // if NO data then forms response as json:
+   // {'_action: 'HIST', 
+   //  '_response': 'NOT_AVAILABLE'
+   // }
+   else {
+      zmq_ret = zmq_ret + ", " + "'_response': 'NOT_AVAILABLE'";
+   }         
+}
+
 // Inform Client
 void InformPullClient(Socket& pSocket, string message) {
 
