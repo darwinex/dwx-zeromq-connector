@@ -59,6 +59,60 @@ Socket pubSocket(context, ZMQ_PUB);
 uchar _data[];
 ZmqMsg request;
 
+/**
+ * Kindly contributed by GitHub contributor: @raulMrello (https://github.com/raulmrello)
+ * Class definition for an specific instrument: the tuple (symbol,timeframe)
+ */
+class Instrument{
+public:  
+                
+    //--------------------------------------------------------------
+    /** Instrument constructor */
+    Instrument(){ _symbol = ""; _name = ""; _timeframe = PERIOD_CURRENT; _last_pub_rate =0;}    
+                 
+    //--------------------------------------------------------------
+    /** Getters */
+    string          symbol()    { return _symbol; }
+    ENUM_TIMEFRAMES timeframe() { return _timeframe; }
+    string          name()      { return _name; }
+    datetime        getLastPublishTimestamp() { return _last_pub_rate; }
+    /** Setters */
+    void            setLastPublishTimestamp(datetime tmstmp) { _last_pub_rate = tmstmp; }
+   
+   //--------------------------------------------------------------
+    /** Setup instrument with symbol and timeframe descriptions
+     *  @param arg_symbol Symbol
+     *  @param arg_timeframe Timeframe
+     */
+    void setup(string arg_symbol, ENUM_TIMEFRAMES arg_timeframe){
+        _symbol = arg_symbol;
+        _timeframe = arg_timeframe;
+        _name  = _symbol + "_" + GetTimeframeText(_timeframe);
+        _last_pub_rate = 0;
+    }
+                
+    //--------------------------------------------------------------
+    /** Get last N MqlRates from this instrument (symbol-timeframe)
+     *  @param rates Receives last 'count' rates
+     *  @param count Number of requested rates
+     *  @return Number of returned rates
+     */
+    int GetRates(MqlRates& rates[], int count){
+        // ensures that symbol is setup
+        if(StringLen(_symbol) > 0){
+            return CopyRates(_symbol, _timeframe, 0, count, rates);
+        }
+        return 0;
+    }
+    
+protected:
+    string _name;                //!< Instrument descriptive name
+    string _symbol;              //!< Symbol
+    ENUM_TIMEFRAMES _timeframe;  //!< Timeframe
+    datetime _last_pub_rate;     //!< Timestamp of the last published OHLC rate. Default = 0 (1 Jan 1970)
+ 
+};
+
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
