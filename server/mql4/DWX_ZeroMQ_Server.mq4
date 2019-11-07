@@ -113,6 +113,10 @@ protected:
  
 };
 
+// Array of instruments whose rates will be published if Publish_MarketRates = True. 
+// It is initialized in OnInit() and can be updated through TRACK_RATES request from client peers.
+Instrument Publish_Instruments[];
+
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
