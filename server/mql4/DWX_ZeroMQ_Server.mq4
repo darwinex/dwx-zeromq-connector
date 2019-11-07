@@ -158,15 +158,20 @@ int OnInit()
       Print("[PULL] Binding MT4 Server to Socket on Port " + IntegerToString(PUSH_PORT) + "..");
    }
   
-   if (Publish_MarketData == true)
+   // Send new market data to PUB_PORT that client is subscribed to.
+   pubSocket.setSendHighWaterMark(1);
+   pubSocket.setLinger(0);
+
+   if(!pubSocket.bind(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PUB_PORT)))
    {
-      // Send new market data to PUB_PORT that client is subscribed to.
-      pubSocket.setSendHighWaterMark(1);
-      pubSocket.setLinger(0);
-      Print("[PUB] Binding MT4 Server to Socket on Port " + IntegerToString(PUB_PORT) + "..");
-      pubSocket.bind(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PUB_PORT));
+        Print("[PUB] ####ERROR#### Binding MT4 Server to Socket on Port " + IntegerToString(PUB_PORT) + "..");
+        return(INIT_FAILED);
    }
-   
+   else
+   {
+      Print("[PUB] Binding MT4 Server to Socket on Port " + IntegerToString(PUB_PORT) + "..");
+   }
+  
 //---
    return(INIT_SUCCEEDED);
   }
