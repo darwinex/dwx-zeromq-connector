@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-    DWX_ZeroMQ_Connector_v2_0_1_RC8.py
+    DWX_ZeroMQ_Connector.py
     --
     @author: Darwinex Labs (www.darwinex.com)
     
-    Last Updated: August 06, 2019
+    Last Updated: November 08, 2019
     
     Copyright (c) 2017-2019, Darwinex. All rights reserved.
     
