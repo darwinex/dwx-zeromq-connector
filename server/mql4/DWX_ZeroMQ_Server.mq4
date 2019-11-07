@@ -1,8 +1,8 @@
 //+--------------------------------------------------------------+
-//|     DWX_ZeroMQ_Server_v2.0.1_RC8.mq4
+//|     DWX_ZeroMQ_Server.mq4
 //|     @author: Darwinex Labs (www.darwinex.com)
 //|    
-//|     Last Updated: September 14, 2019
+//|     Last Updated: November 07, 2019
 //|
 //|     Copyright (c) 2017-2019, Darwinex. All rights reserved.
 //|    
@@ -21,7 +21,7 @@
 
 #include <Zmq/Zmq.mqh>
 
-extern string PROJECT_NAME = "DWX_ZeroMQ_MT4_Server";
+extern string PROJECT_NAME = "DWX_ZeroMQ_Server";
 extern string ZEROMQ_PROTOCOL = "tcp";
 extern string HOSTNAME = "*";
 extern int PUSH_PORT = 32768;
@@ -37,20 +37,11 @@ extern int MaximumSlippage = 3;
 extern bool DMA_MODE = true;
 
 extern string t1 = "--- ZeroMQ Configuration ---";
-extern bool Publish_MarketData = false;
+bool Publish_MarketData  = false;
+bool Publish_MarketRates = false;
 
-string Publish_Symbols[7] = {
-   "EURUSD","GBPUSD","USDJPY","USDCAD","AUDUSD","NZDUSD","USDCHF"
-};
-
-/*
-string Publish_Symbols[28] = {
-   "EURUSD","EURGBP","EURAUD","EURNZD","EURJPY","EURCHF","EURCAD",
-   "GBPUSD","AUDUSD","NZDUSD","USDJPY","USDCHF","USDCAD","GBPAUD",
-   "GBPNZD","GBPJPY","GBPCHF","GBPCAD","AUDJPY","CHFJPY","CADJPY",
-   "AUDNZD","AUDCHF","AUDCAD","NZDJPY","NZDCHF","NZDCAD","CADCHF"
-};
-*/
+// Dynamic array initialized at OnInit(). Can be updated by TRACK_PRICES requests from client peers
+string Publish_Symbols[];
 
 // CREATE ZeroMQ Context
 Context context(PROJECT_NAME);
