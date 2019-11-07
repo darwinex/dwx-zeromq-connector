@@ -147,9 +147,17 @@ int OnInit()
    // Receive commands from PUSH_PORT that client is sending to.
    pullSocket.setReceiveHighWaterMark(1);
    pullSocket.setLinger(0);
-   Print("[PULL] Binding MT4 Server to Socket on Port " + IntegerToString(PUSH_PORT) + "..");   
-   pullSocket.bind(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PUSH_PORT));
-   
+
+   if(!pullSocket.bind(StringFormat("%s://%s:%d", ZEROMQ_PROTOCOL, HOSTNAME, PUSH_PORT)))
+   {
+      Print("[PULL] ####ERROR#### Binding MT4 Server to Socket on Port " + IntegerToString(PUSH_PORT) + "..");
+      return(INIT_FAILED);
+   }
+   else
+   {
+      Print("[PULL] Binding MT4 Server to Socket on Port " + IntegerToString(PUSH_PORT) + "..");
+   }
+  
    if (Publish_MarketData == true)
    {
       // Send new market data to PUB_PORT that client is subscribed to.
