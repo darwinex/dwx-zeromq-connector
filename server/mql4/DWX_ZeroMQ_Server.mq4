@@ -495,6 +495,37 @@ void InterpretZmqMessage(Socket &pSocket, string &compArray[]) {
             InformPullClient(pSocket, zmq_ret + "}");
             
             break;
+
+         /* Kindly contributed by GitHub contributor: @raulMrello (https://github.com/raulmrello) */
+         case 9: // HISTORIC REQUEST
+         
+            zmq_ret = "{";
+            
+            DWX_GetHist(compArray, zmq_ret);
+            
+            InformPullClient(pSocket, zmq_ret + "}");
+            
+            break;
+           
+         case 10: // SETUP LIST OF SYMBOLS TO TRACK PRICES
+            
+            zmq_ret = "{";
+            
+            DWX_SetSymbolList(compArray, zmq_ret);
+            
+            InformPullClient(pSocket, zmq_ret + "}");
+            
+            break;
+            
+         case 11: // SETUP LIST OF INSTRUMENTS TO TRACK RATES
+            
+            zmq_ret = "{";
+            
+            DWX_SetInstrumentList(compArray, zmq_ret);
+            
+            InformPullClient(pSocket, zmq_ret + "}");
+            
+            break;
             
          default: 
             break;
