@@ -719,6 +719,34 @@ void DWX_SetSymbolList(string& compArray[], string& zmq_ret) {
    Print(result);
 }
 
+//+------------------------------------------------------------------+
+/* Kindly contributed by GitHub contributor: @raulMrello (https://github.com/raulmrello) */
+// Set list of instruments to get OHLC rates
+void DWX_SetInstrumentList(string& compArray[], string& zmq_ret) {
+    
+    zmq_ret = zmq_ret + "'_action': 'TRACK_RATES'";
+    
+    // Format: TRACK_RATES|SYMBOL_1|TIMEFRAME_1|SYMBOL_2|TIMEFRAME_2|...|SYMBOL_N|TIMEFRAME_N
+    string result = "Tracking RATES from";      
+    int _num_instruments = (ArraySize(compArray) - 1)/2;
+    if(_num_instruments > 0){
+        ArrayResize(Publish_Instruments, _num_instruments);        
+        for(int s=0; s<_num_instruments; s++){ 
+            Publish_Instruments[s].setup(compArray[(2*s)+1], (ENUM_TIMEFRAMES)StrToInteger(compArray[(2*s)+2]));
+            result += " " + Publish_Instruments[s].name();
+         }
+        zmq_ret = zmq_ret + ", '_data': {'instrument_count':" + IntegerToString(_num_instruments) + "}";
+        Publish_MarketRates = true;
+    }
+    else {
+        Publish_MarketRates = false;    
+        ArrayResize(Publish_Instruments, 1);           
+        zmq_ret = zmq_ret + ", '_data': {'instrument_count': 0}";
+        result += " NONE";
+   }         
+   Print(result);
+}
+
 // Inform Client
 void InformPullClient(Socket& pSocket, string message) {
 
