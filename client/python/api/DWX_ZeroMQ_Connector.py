@@ -102,6 +102,7 @@ class DWX_ZeroMQ_Connector():
                 
         # Market Data Dictionary by Symbol (holds tick data)
         self._Market_Data_DB = {}   # {SYMBOL: {TIMESTAMP: (BID, ASK)}}
+                                    # {SYMBOL: {TIMESTAMP: (TIME, OPEN, HIGH, LOW, CLOSE, TICKVOL, SPREAD, VOLUME)}}
                                 
         # Temporary Order STRUCT for convenience wrappers later.
         self.temp_order_dict = self._generate_default_order_dict()
