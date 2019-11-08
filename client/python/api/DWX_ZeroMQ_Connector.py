@@ -33,6 +33,8 @@ class DWX_ZeroMQ_Connector():
                  _PULL_PORT=32769,          # Port for Receiving responses
                  _SUB_PORT=32770,           # Port for Subscribing for prices
                  _delimiter=';',
+                 _pulldata_handlers = [],    # Handlers to process data received through PULL port.
+                 _subdata_handlers = [],     # Handlers to process data received through SUB port.
                  _verbose=True,             # String delimiter
                  _poll_timeout=1000,        # ZMQ Poller Timeout (ms)
                  _sleep_delay=0.001):        # 1 ms for time.sleep()
