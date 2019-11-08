@@ -64,6 +64,10 @@ class DWX_ZeroMQ_Connector():
         self._PULL_PORT = _PULL_PORT
         self._SUB_PORT = _SUB_PORT
         
+        # Handlers for received data (pull and sub ports)
+        self._pulldata_handlers = _pulldata_handlers
+        self._subdata_handlers = _subdata_handlers
+        
         # Create Sockets
         self._PUSH_SOCKET = self._ZMQ_CONTEXT.socket(zmq.PUSH)
         self._PUSH_SOCKET.setsockopt(zmq.SNDHWM, 1)        
