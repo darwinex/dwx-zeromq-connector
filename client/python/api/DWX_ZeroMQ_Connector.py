@@ -161,15 +161,12 @@ class DWX_ZeroMQ_Connector():
     """
     def remote_send(self, _socket, _data):
         
-        if self._PUSH_SOCKET_STATUS['state'] == True:
-            try:
-                _socket.send_string(_data, zmq.DONTWAIT)
-            except zmq.error.Again:
-                print("\nResource timeout.. please try again.")
-                sleep(self._sleep_delay)
-        else:
-            print('\n[KERNEL] NO HANDSHAKE ON PUSH SOCKET.. Cannot SEND data')
-      
+        try:
+            _socket.send_string(_data, zmq.DONTWAIT)
+        except zmq.error.Again:
+            print("\nResource timeout.. please try again.")
+            sleep(self._sleep_delay)
+        
     ##########################################################################
     
     def _get_response_(self):
