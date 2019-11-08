@@ -100,7 +100,7 @@ class DWX_ZeroMQ_Connector():
         # BID/ASK Market Data Subscription Threads ({SYMBOL: Thread})
         self._MarketData_Thread = None
                 
-        # Market Data Dictionary by Symbol (holds tick data)
+        # Market Data Dictionary by Symbol (holds tick data) or Instrument (holds OHLC data)
         self._Market_Data_DB = {}   # {SYMBOL: {TIMESTAMP: (BID, ASK)}}
                                     # {SYMBOL: {TIMESTAMP: (TIME, OPEN, HIGH, LOW, CLOSE, TICKVOL, SPREAD, VOLUME)}}
                                 
@@ -321,6 +321,14 @@ class DWX_ZeroMQ_Connector():
         return({'_action': 'DATA',
                   '_symbol': 'EURUSD',
                   '_timeframe': 1440, # M1 = 1, M5 = 5, and so on..
+                  '_start': '2018.12.21 17:00:00', # timestamp in MT4 recognized format
+                  '_end': '2018.12.21 17:05:00'})
+
+    # DEFAULT HIST REQUEST DICT
+    def _generate_default_hist_dict(self):
+        return({'_action': 'HIST',
+                  '_symbol': 'EURUSD',
+                  '_timeframe': 1, # M1 = 1, M5 = 5, and so on..
                   '_start': '2018.12.21 17:00:00', # timestamp in MT4 recognized format
                   '_end': '2018.12.21 17:05:00'})
         
