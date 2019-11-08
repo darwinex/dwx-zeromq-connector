@@ -529,7 +529,7 @@ class DWX_ZeroMQ_Connector():
                             
                         # invokes data handlers on sub port
                         for hnd in self._subdata_handlers:
-                        hnd.onSubData(msg)    
+                            hnd.onSubData(msg)    
                     
                 except zmq.error.Again:
                     pass # resource temporarily unavailable, nothing to print
