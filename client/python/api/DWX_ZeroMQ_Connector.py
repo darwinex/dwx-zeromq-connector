@@ -20,9 +20,6 @@ from time import sleep
 from pandas import DataFrame, Timestamp
 from threading import Thread
 
-# 30-07-2019 10:58 CEST
-from zmq.utils.monitor import recv_monitor_message
-
 class DWX_ZeroMQ_Connector():
 
     """
