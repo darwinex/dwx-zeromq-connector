@@ -498,68 +498,6 @@ class DWX_ZeroMQ_Connector():
         
     ##########################################################################
     
-    def _DWX_ZMQ_EVENT_MONITOR_(self, 
-                                socket_name, 
-                                monitor_socket):
-        
-        # 05-08-2019 11:21 CEST
-        while self._ACTIVE:
-            
-            sleep(self._sleep_delay) # poll timeout is in ms, sleep() is s.
-            
-            # while monitor_socket.poll():
-            while monitor_socket.poll(self._poll_timeout):
-                
-                try:
-                    evt = recv_monitor_message(monitor_socket, zmq.DONTWAIT)
-                    evt.update({'description': self._MONITOR_EVENT_MAP[evt['event']]})
-                    
-                    # print(f"\r[{socket_name} Socket] >> {evt['description']}", end='', flush=True)
-                    print(f"\n[{socket_name} Socket] >> {evt['description']}")
-                    
-                    # Set socket status on HANDSHAKE
-                    if evt['event'] == 4096:        # EVENT_HANDSHAKE_SUCCEEDED
-                        
-                        if socket_name == "PUSH":
-                            self._PUSH_SOCKET_STATUS['state'] = True
-                            self._PUSH_SOCKET_STATUS['latest_event'] = 'EVENT_HANDSHAKE_SUCCEEDED'
-                            
-                        elif socket_name == "PULL":
-                            self._PULL_SOCKET_STATUS['state'] = True
-                            self._PULL_SOCKET_STATUS['latest_event'] = 'EVENT_HANDSHAKE_SUCCEEDED'
-                            
-                        # print(f"\n[{socket_name} Socket] >> ..ready for action!\n")
-                            
-                    else:    
-                        # Update 'latest_event'
-                        if socket_name == "PUSH":
-                            self._PUSH_SOCKET_STATUS['state'] = False
-                            self._PUSH_SOCKET_STATUS['latest_event'] = evt['description']
-                            
-                        elif socket_name == "PULL":
-                            self._PULL_SOCKET_STATUS['state'] = False
-                            self._PULL_SOCKET_STATUS['latest_event'] = evt['description']
-                
-                    if evt['event'] == zmq.EVENT_MONITOR_STOPPED:
-                        
-                        # Reinitialize the socket
-                        if socket_name == "PUSH":
-                            monitor_socket = self._PUSH_SOCKET.get_monitor_socket()
-                        elif socket_name == "PULL":
-                            monitor_socket = self._PULL_SOCKET.get_monitor_socket()
-                        
-                except Exception as ex:
-                    _exstr = "Exception Type {0}. Args:\n{1!r}"
-                    _msg = _exstr.format(type(ex).__name__, ex.args)
-                    print(_msg)
-               
-        # Close Monitor Socket
-        monitor_socket.close()
-        
-        print(f"\n++ [KERNEL] {socket_name} _DWX_ZMQ_EVENT_MONITOR_() Signing Out ++")
-            
-    ##########################################################################
-    
     def _DWX_ZMQ_HEARTBEAT_(self):
         self.remote_send(self._PUSH_SOCKET, "HEARTBEAT;")
         
