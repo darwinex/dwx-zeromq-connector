@@ -372,6 +372,19 @@ class DWX_ZeroMQ_Connector():
     
     ##########################################################################
     """
+    Function to construct messages for sending TRACK_PRICES commands to MetaTrader
+    """
+    def _DWX_MTX_SEND_TRACKPRICES_REQUEST_(self,
+                                 _symbols=['EURUSD']):
+        _msg = 'TRACK_PRICES'                                 
+        for s in _symbols:
+          _msg = _msg + ";{}".format(s)
+
+        # Send via PUSH Socket
+        self.remote_send(self._PUSH_SOCKET, _msg)
+    
+    ##########################################################################
+    """
     Function to construct messages for sending Trade commands to MetaTrader
     """
     def _DWX_MTX_SEND_COMMAND_(self, _action='OPEN', _type=0,
