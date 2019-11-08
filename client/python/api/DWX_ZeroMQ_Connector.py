@@ -351,6 +351,24 @@ class DWX_ZeroMQ_Connector():
         # Send via PUSH Socket
         self.remote_send(self._PUSH_SOCKET, _msg)
     
+    ##########################################################################
+    """
+    Function to construct messages for sending HIST commands to MetaTrader
+    """
+    def _DWX_MTX_SEND_MARKETHIST_REQUEST_(self,
+                                 _symbol='EURUSD',
+                                 _timeframe=1,
+                                 _start='2019.01.04 17:00:00',
+                                 _end=Timestamp.now().strftime('%Y.%m.%d %H:%M:00')):
+                                 #_end='2019.01.04 17:05:00'):
+        
+        _msg = "{};{};{};{};{}".format('HIST',
+                                     _symbol,
+                                     _timeframe,
+                                     _start,
+                                     _end)
+        # Send via PUSH Socket
+        self.remote_send(self._PUSH_SOCKET, _msg)
     
     ##########################################################################
     """
