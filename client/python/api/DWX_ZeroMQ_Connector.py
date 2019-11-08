@@ -475,6 +475,11 @@ class DWX_ZeroMQ_Connector():
                             self._thread_data_output = _data
                             if self._verbose:
                                 print(_data) # default logic
+
+                            # Kindly contributed by GitHub contributor @raulMrello (https://github.com/raulMrello)
+                            # invokes data handlers on pull port
+                            for hnd in self._pulldata_handlers:
+                              hnd.onPullData(_data)
                                 
                         except Exception as ex:
                             _exstr = "Exception Type {0}. Args:\n{1!r}"
