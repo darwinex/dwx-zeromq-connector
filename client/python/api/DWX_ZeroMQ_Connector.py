@@ -38,8 +38,7 @@ class DWX_ZeroMQ_Connector():
                  _delimiter=';',
                  _verbose=True,             # String delimiter
                  _poll_timeout=1000,        # ZMQ Poller Timeout (ms)
-                 _sleep_delay=0.001,        # 1 ms for time.sleep()
-                 _monitor=False):           # Experimental ZeroMQ Socket Monitoring
+                 _sleep_delay=0.001)        # 1 ms for time.sleep()
     
         ######################################################################
         
