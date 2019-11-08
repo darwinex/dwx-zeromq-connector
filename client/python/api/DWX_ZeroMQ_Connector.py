@@ -200,15 +200,12 @@ class DWX_ZeroMQ_Connector():
     """
     def remote_recv(self, _socket):
         
-        if self._PULL_SOCKET_STATUS['state'] == True:
-            try:
-                msg = _socket.recv_string(zmq.DONTWAIT)
-                return msg
-            except zmq.error.Again:
-                print("\nResource timeout.. please try again.")
-                sleep(self._sleep_delay)
-        else:
-            print('\r[KERNEL] NO HANDSHAKE ON PULL SOCKET.. Cannot READ data', end='', flush=True)
+        try:
+            msg = _socket.recv_string(zmq.DONTWAIT)
+            return msg
+        except zmq.error.Again:
+            print("\nResource timeout.. please try again.")
+            sleep(self._sleep_delay)
             
         return None
         
