@@ -500,18 +500,36 @@ class DWX_ZeroMQ_Connector():
                     msg = self._SUB_SOCKET.recv_string(zmq.DONTWAIT)
                     
                     if msg != "":
-                        _symbol, _data = msg.split(" ")
-                        _bid, _ask = _data.split(string_delimiter)
                         _timestamp = str(Timestamp.now('UTC'))[:-6]
-                        
-                        if self._verbose:
-                            print("\n[" + _symbol + "] " + _timestamp + " (" + _bid + "/" + _ask + ") BID/ASK")
-                    
-                        # Update Market Data DB
-                        if _symbol not in self._Market_Data_DB.keys():
-                            self._Market_Data_DB[_symbol] = {}
+                        _symbol, _data = msg.split(" ")
+
+                        if len(_data.split(string_delimiter)) == 2:
+                            _bid, _ask = _data.split(string_delimiter)
+
+                            if self._verbose:
+                                print("\n[" + _symbol + "] " + _timestamp + " (" + _bid + "/" + _ask + ") BID/ASK")         
+
+                            # Update Market Data DB
+                            if _symbol not in self._Market_Data_DB.keys():
+                                self._Market_Data_DB[_symbol] = {}
+
+                            self._Market_Data_DB[_symbol][_timestamp] = (float(_bid), float(_ask))
+
+                        elif len(_data.split(string_delimiter)) == 8:
+                            _time, _open, _high, _low, _close, _tick_vol, _spread, _real_vol = _data.split(string_delimiter)
+
+                            if self._verbose:
+                                print("\n[" + _symbol + "] " + _timestamp + " (" + _time + "/" + _open + "/" + _high + "/" + _low + "/" + _close + "/" + _tick_vol + "/" + _spread + "/" + _real_vol + ") TIME/OPEN/HIGH/LOW/CLOSE/TICKVOL/SPREAD/VOLUME")    
+
+                            # Update Market Rate DB
+                            if _symbol not in self._Market_Data_DB.keys():
+                                self._Market_Data_DB[_symbol] = {}
+
+                            self._Market_Data_DB[_symbol][_timestamp] = (int(_time), float(_open), float(_high), float(_low), float(_close), int(_tick_vol), int(_spread), int(_real_vol))
                             
-                        self._Market_Data_DB[_symbol][_timestamp] = (float(_bid), float(_ask))
+                        # invokes data handlers on sub port
+                        for hnd in self._subdata_handlers:
+                        hnd.onSubData(msg)    
                     
                 except zmq.error.Again:
                     pass # resource temporarily unavailable, nothing to print
