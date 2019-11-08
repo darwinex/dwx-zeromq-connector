@@ -124,44 +124,6 @@ class DWX_ZeroMQ_Connector():
         self._MarketData_Thread.daemon = True
         self._MarketData_Thread.start()
         
-        ###########################################
-        # Enable/Disable ZeroMQ Socket Monitoring #
-        ###########################################
-        if _monitor == True:
-            
-            # ZeroMQ Monitor Event Map
-            self._MONITOR_EVENT_MAP = {}
-            
-            print("\n[KERNEL] Retrieving ZeroMQ Monitor Event Names:\n")
-            
-            for name in dir(zmq):
-                if name.startswith('EVENT_'):
-                    value = getattr(zmq, name)
-                    print(f"{value}\t\t:\t{name}")
-                    self._MONITOR_EVENT_MAP[value] = name
-            
-            print("\n[KERNEL] Socket Monitoring Config -> DONE!\n")
-        
-            # Disable PUSH/PULL sockets and let MONITOR events control them.
-            self._PUSH_SOCKET_STATUS['state'] = False
-            self._PULL_SOCKET_STATUS['state'] = False
-            
-            # PUSH
-            self._PUSH_Monitor_Thread = Thread(target=self._DWX_ZMQ_EVENT_MONITOR_, 
-                                               args=("PUSH",
-                                                     self._PUSH_SOCKET.get_monitor_socket(),))
-            
-            self._PUSH_Monitor_Thread.daemon = True
-            self._PUSH_Monitor_Thread.start()
-            
-            # PULL
-            self._PULL_Monitor_Thread = Thread(target=self._DWX_ZMQ_EVENT_MONITOR_, 
-                                               args=("PULL",
-                                                     self._PULL_SOCKET.get_monitor_socket(),))
-            
-            self._PULL_Monitor_Thread.daemon = True
-            self._PULL_Monitor_Thread.start()
-       
     ##########################################################################
     
     def _DWX_ZMQ_SHUTDOWN_(self):
