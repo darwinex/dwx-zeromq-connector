@@ -408,37 +408,32 @@ class DWX_ZeroMQ_Connector():
             # Process response to commands sent to MetaTrader
             if self._PULL_SOCKET in sockets and sockets[self._PULL_SOCKET] == zmq.POLLIN:
                 
-                if self._PULL_SOCKET_STATUS['state'] == True:
-                    try:
+                try:
+                    
+                    msg = self.remote_recv(self._PULL_SOCKET)
+                    
+                    # If data is returned, store as pandas Series
+                    if msg != '' and msg != None:
                         
-                        # msg = self._PULL_SOCKET.recv_string(zmq.DONTWAIT)
-                        msg = self.remote_recv(self._PULL_SOCKET)
-                        
-                        # If data is returned, store as pandas Series
-                        if msg != '' and msg != None:
+                        try: 
+                            _data = eval(msg)
                             
-                            try: 
-                                _data = eval(msg)
+                            self._thread_data_output = _data
+                            if self._verbose:
+                                print(_data) # default logic
                                 
-                                self._thread_data_output = _data
-                                if self._verbose:
-                                    print(_data) # default logic
-                                    
-                            except Exception as ex:
-                                _exstr = "Exception Type {0}. Args:\n{1!r}"
-                                _msg = _exstr.format(type(ex).__name__, ex.args)
-                                print(_msg)
-                   
-                    except zmq.error.Again:
-                        pass # resource temporarily unavailable, nothing to print
-                    except ValueError:
-                        pass # No data returned, passing iteration.
-                    except UnboundLocalError:
-                        pass # _symbol may sometimes get referenced before being assigned.
+                        except Exception as ex:
+                            _exstr = "Exception Type {0}. Args:\n{1!r}"
+                            _msg = _exstr.format(type(ex).__name__, ex.args)
+                            print(_msg)
                 
-                else:
-                    print('\r[KERNEL] NO HANDSHAKE on PULL SOCKET.. Cannot READ data.', end='', flush=True)
-            
+                except zmq.error.Again:
+                    pass # resource temporarily unavailable, nothing to print
+                except ValueError:
+                    pass # No data returned, passing iteration.
+                except UnboundLocalError:
+                    pass # _symbol may sometimes get referenced before being assigned.
+                
             # Receive new market data from MetaTrader
             if self._SUB_SOCKET in sockets and sockets[self._SUB_SOCKET] == zmq.POLLIN:
                 
