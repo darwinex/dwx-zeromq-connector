@@ -827,7 +827,7 @@ void DWX_GetOpenOrders(string &zmq_ret) {
       
       if (OrderSelect(i,SELECT_BY_POS)==true) {
       
-         zmq_ret = zmq_ret + IntegerToString(OrderTicket()) + ": {";
+         zmq_ret = zmq_ret + "'" + IntegerToString(OrderTicket()) + "': {";
          
          zmq_ret = zmq_ret + "'_magic': " + IntegerToString(OrderMagicNumber()) + ", '_symbol': '" + OrderSymbol() + "', '_lots': " + DoubleToString(OrderLots()) + ", '_type': " + IntegerToString(OrderType()) + ", '_open_price': " + DoubleToString(OrderOpenPrice()) + ", '_open_time': '" + TimeToStr(OrderOpenTime(),TIME_DATE|TIME_SECONDS) + "', '_SL': " + DoubleToString(OrderStopLoss()) + ", '_TP': " + DoubleToString(OrderTakeProfit()) + ", '_pnl': " + DoubleToString(OrderProfit()) + ", '_comment': '" + OrderComment() + "'";
          
