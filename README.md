@@ -33,7 +33,7 @@ In this project, we present a technique employing ZeroMQ (an Open Source, Asynch
 
 ### IMPORTANT NOTES - PLEASE READ:
 
-1. Please note that we cannot provide support for Python or MQL as programming languages themselves. Therefore, if you are new to Python and MQL, incorporating the project into your specific algorithmic trading environment will require some additional work on your part (i.e. enough Python experience to integrate the Bridge into your environment -> it is assumed that users of the Bridge are self-sufficient in Python).
+1. **Please note that we cannot provide support for Python or MQL as programming languages themselves.** Therefore, if you are new to Python and MQL, incorporating the project into your specific algorithmic trading environment will require some additional work on your part (i.e. enough Python experience to integrate the Bridge into your environment -> it is assumed that users of the Bridge are self-sufficient in Python).
 
 1. Any code provided and/or referenced in this repository is NOT meant to be used "as-is". Users must treat all code as educational content that requires modification / incorporation into existing works, as per their individual requirements.
 
@@ -41,7 +41,7 @@ In this project, we present a technique employing ZeroMQ (an Open Source, Asynch
 
 1. This project and all accompanying source code should be run standalone (i.g. via a Python or IPython console, or batch process).
 
-1. Please DO NOT run this code in Jupyter or IPython Notebooks.
+1. **Please DO NOT run this code in Jupyter or IPython Notebooks.**
 
 1. The project's dependencies require **MS VC++ Libraries**. Without these installed, you are likely to run into **"Resource Timeout" errors.** The DLLs in the dependency projects (mql-zmq, libzmq, libsodium) require that you have the **latest Visual C++ runtime (2015) libraries already installed.**
 
@@ -87,6 +87,8 @@ This project requires the following:
 * **libsodium** (https://github.com/jedisct1/libsodium)
 * **mql4-lib** (https://github.com/dingmaotu/mql4-lib)
 * **mql-zmq** (https://github.com/dingmaotu/mql-zmq)
+
+You may install Python-specific dependencies either via `pip install -r ./v2.0.1/python/api/requirements.txt ` or via installing the latest Anaconda distribution (Python 3 variants).
 
 For your convenience, files from the last three items above have been included in this repository with appropriate copyrights referenced within. 
 
