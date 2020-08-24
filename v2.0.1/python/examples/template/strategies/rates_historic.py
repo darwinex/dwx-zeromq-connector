@@ -89,9 +89,7 @@ class rates_historic(DWX_ZMQ_Strategy):
         Callback to process new data received through the PULL port
         """        
         # print responses to request commands
-        print('\rHistoric from ExpertAdvisor={}'.format(data), end='', flush=True)
-        # finishes (removes all subscriptions)  
-        self.stop()
+        print('Historic from ExpertAdvisor={}'.format(data))
 
         
     ##########################################################################    
@@ -101,7 +99,7 @@ class rates_historic(DWX_ZMQ_Strategy):
         """
         # split msg to get topic and message
         _topic, _msg = data.split(" ")
-        print('\rData on Topic={} with Message={}'.format(_topic, _msg), end='', flush=True)
+        print('Data on Topic={} with Message={}'.format(_topic, _msg))
 
         
         
@@ -113,11 +111,17 @@ class rates_historic(DWX_ZMQ_Strategy):
         self._finished = False
 
         # request rates
-        print('\rRequesting Daily Rates from EURGBP', end='', flush=True)
-        self._zmq._DWX_MTX_SEND_MARKETHIST_REQUEST_(_symbol='EURGBP',
-                                                    _timeframe=1440,
-                                                    _start='2019.01.04 00:00:00',
-                                                    _end  ='2019.01.14 00:00:00')
+        print('Requesting Daily Rates from EURGBP')
+        self._zmq._DWX_MTX_SEND_HIST_REQUEST_(_symbol='EURGBP',
+                                              _timeframe=1440,
+                                              _start='2020.05.04 00:00:00',
+                                              _end  ='2020.05.14 00:00:00')
+        sleep(1)
+        print('\nHistory Data Dictionary:')
+        print(self._zmq._History_DB)
+
+        # finishes (removes all subscriptions)  
+        self.stop()
 
     ##########################################################################    
     def stop(self):
@@ -130,7 +134,7 @@ class rates_historic(DWX_ZMQ_Strategy):
         # Acquire lock
         self._lock.acquire()
         self._zmq._DWX_MTX_UNSUBSCRIBE_ALL_MARKETDATA_REQUESTS_()
-        print('\rUnsubscribing from all topics', end='', flush=True)
+        print('Unsubscribing from all topics')
           
       finally:
         # Release lock
@@ -150,15 +154,15 @@ class rates_historic(DWX_ZMQ_Strategy):
 if __name__ == "__main__":
   
   # creates object with a predefined configuration: historic EURGBP_D1 between 4th adn 14th January 2019
-  print('\rLoading example...', end='', flush=True)
+  print('Loading example...')
   example = rates_historic()  
 
   # Starts example execution
-  print('\Running example...', end='', flush=True)  
+  print('unning example...')  
   example.run()
 
   # Waits example termination
-  print('\rWaiting example termination...', end='', flush=True)
+  print('Waiting example termination...')
   while not example.isFinished():
     sleep(1)
-  print('\rBye!!!', end='', flush=True)
+  print('Bye!!!')

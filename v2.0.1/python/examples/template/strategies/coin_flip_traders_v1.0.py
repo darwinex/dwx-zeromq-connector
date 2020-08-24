@@ -34,12 +34,11 @@
     https://opensource.org/licenses/BSD-3-Clause
 """
 
-import os
-
 #############################################################################
 #############################################################################
-_path = '<PATH_TO_ROOT_DIR_CONTAINING_DWX_ZEROMQ_CONNECTOR>'
-os.chdir(_path)
+# Append path for main project folder
+import sys
+sys.path.append('../../..')
 #############################################################################
 #############################################################################
 
@@ -120,8 +119,8 @@ class coin_flip_traders(DWX_ZMQ_Strategy):
         # _verbose can print too much information.. so let's start a thread
         # that prints an update for instructions flowing through ZeroMQ
         self._updater_ = Thread(name='Live_Updater',
-                               target=self._updater_,
-                               args=(self._delay,))
+                                target=self._updater_,
+                                args=(self._delay,))
         
         self._updater_.daemon = True
         self._updater_.start()
@@ -136,7 +135,7 @@ class coin_flip_traders(DWX_ZMQ_Strategy):
                 # Acquire lock
                 self._lock.acquire()
                 
-                print('\r{}'.format(str(self._zmq._get_response_())), end='', flush=True)
+                print('{}'.format(str(self._zmq._get_response_())))
                 
             finally:
                 # Release lock
@@ -261,3 +260,27 @@ class coin_flip_traders(DWX_ZMQ_Strategy):
         self._zmq._DWX_MTX_CLOSE_ALL_TRADES_()
         
     ##########################################################################
+
+
+""" -----------------------------------------------------------------------------------------------
+    -----------------------------------------------------------------------------------------------
+    SCRIPT SETUP
+    -----------------------------------------------------------------------------------------------
+    -----------------------------------------------------------------------------------------------
+"""
+# IMPORTANT: don't execute this on a live account!
+# if __name__ == "__main__":
+
+#     # creates object with a predefined configuration: symbol list including EURUSD and GDAXI
+#     print('Loading example...')
+#     example = coin_flip_traders()
+
+#     # Starts example execution. 
+#     print('unning example...')  
+#     example._run_()
+
+#     # Waits example termination
+#     print('Waiting example termination...')
+#     sleep(10)
+#     print('Stopping and closing all positions again...')
+#     example._stop_()

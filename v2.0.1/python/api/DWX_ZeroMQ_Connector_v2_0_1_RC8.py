@@ -4,8 +4,6 @@
     --
     @author: Darwinex Labs (www.darwinex.com)
     
-    Last Updated: August 06, 2019
-    
     Copyright (c) 2017-2019, Darwinex. All rights reserved.
     
     Licensed under the BSD 3-Clause License, you may not use this file except 
@@ -36,6 +34,8 @@ class DWX_ZeroMQ_Connector():
                  _PULL_PORT=32769,          # Port for Receiving responses
                  _SUB_PORT=32770,           # Port for Subscribing for prices
                  _delimiter=';',
+                 _pulldata_handlers = [],   # Handlers to process data received through PULL port.
+                 _subdata_handlers = [],    # Handlers to process data received through SUB port.
                  _verbose=True,             # String delimiter
                  _poll_timeout=1000,        # ZMQ Poller Timeout (ms)
                  _sleep_delay=0.001,        # 1 ms for time.sleep()
@@ -61,6 +61,10 @@ class DWX_ZeroMQ_Connector():
         # TCP Connection URL Template
         self._URL = self._protocol + "://" + self._host + ":"
         
+        # Handlers for received data (pull and sub ports)
+        self._pulldata_handlers = _pulldata_handlers
+        self._subdata_handlers = _subdata_handlers
+
         # Ports for PUSH, PULL and SUB sockets respectively
         self._PUSH_PORT = _PUSH_PORT
         self._PULL_PORT = _PULL_PORT
@@ -106,6 +110,11 @@ class DWX_ZeroMQ_Connector():
         
         # Market Data Dictionary by Symbol (holds tick data)
         self._Market_Data_DB = {}   # {SYMBOL: {TIMESTAMP: (BID, ASK)}}
+        
+        # History Data Dictionary by Symbol (holds historic data of the last HIST request for each symbol)
+        self._History_DB = {}   # {SYMBOL_TF: [{'time': TIME, 'open': OPEN_PRICE, 'high': HIGH_PRICE, 
+                                #               'low': LOW_PRICE, 'close': CLOSE_PRICE, 'tick_volume': TICK_VOLUME, 
+                                #               'spread': SPREAD, 'real_volume': REAL_VOLUME}, ...]}
                                 
         # Temporary Order STRUCT for convenience wrappers later.
         self.temp_order_dict = self._generate_default_order_dict()
@@ -278,13 +287,15 @@ class DWX_ZeroMQ_Connector():
         self._DWX_MTX_SEND_COMMAND_(**_order)
         
     # MODIFY ORDER
-    def _DWX_MTX_MODIFY_TRADE_BY_TICKET_(self, _ticket, _SL, _TP): # in points
+    # _SL and _TP given in points. _price is only used for pending orders. 
+    def _DWX_MTX_MODIFY_TRADE_BY_TICKET_(self, _ticket, _SL, _TP, _price=0):
         
         try:
             self.temp_order_dict['_action'] = 'MODIFY'
+            self.temp_order_dict['_ticket'] = _ticket
             self.temp_order_dict['_SL'] = _SL
             self.temp_order_dict['_TP'] = _TP
-            self.temp_order_dict['_ticket'] = _ticket
+            self.temp_order_dict['_price'] = _price
             
             # Execute
             self._DWX_MTX_SEND_COMMAND_(**self.temp_order_dict)
@@ -368,33 +379,62 @@ class DWX_ZeroMQ_Connector():
                   '_lots': 0.01,
                   '_magic': 123456,
                   '_ticket': 0})
-    
-    # DEFAULT DATA REQUEST DICT
-    def _generate_default_data_dict(self):
-        return({'_action': 'DATA',
-                  '_symbol': 'EURUSD',
-                  '_timeframe': 1440, # M1 = 1, M5 = 5, and so on..
-                  '_start': '2018.12.21 17:00:00', # timestamp in MT4 recognized format
-                  '_end': '2018.12.21 17:05:00'})
         
     ##########################################################################
+
     """
-    Function to construct messages for sending DATA commands to MetaTrader
+    Function to construct messages for sending HIST commands to MetaTrader
+
+    Because of broker GMT offset _end time might have to be modified.
     """
-    def _DWX_MTX_SEND_MARKETDATA_REQUEST_(self,
+    def _DWX_MTX_SEND_HIST_REQUEST_(self,
                                  _symbol='EURUSD',
-                                 _timeframe=1,
-                                 _start='2019.01.04 17:00:00',
+                                 _timeframe=1440,
+                                 _start='2020.01.01 00:00:00',
                                  _end=Timestamp.now().strftime('%Y.%m.%d %H:%M:00')):
                                  #_end='2019.01.04 17:05:00'):
         
-        _msg = "{};{};{};{};{}".format('DATA',
+        _msg = "{};{};{};{};{}".format('HIST',
                                      _symbol,
                                      _timeframe,
                                      _start,
                                      _end)
+
         # Send via PUSH Socket
         self.remote_send(self._PUSH_SOCKET, _msg)
+    
+    
+    ##########################################################################
+    """
+    Function to construct messages for sending TRACK_PRICES commands to 
+    MetaTrader for real-time price updates
+    """
+    def _DWX_MTX_SEND_TRACKPRICES_REQUEST_(self,
+                                 _symbols=['EURUSD']):
+        _msg = 'TRACK_PRICES'
+        for s in _symbols:
+          _msg = _msg + ";{}".format(s)
+
+        # Send via PUSH Socket
+        self.remote_send(self._PUSH_SOCKET, _msg)
+    
+    
+    ##########################################################################
+    """
+    Function to construct messages for sending TRACK_RATES commands to 
+    MetaTrader for OHLC
+    """
+    def _DWX_MTX_SEND_TRACKRATES_REQUEST_(self,
+                                 _instruments=[('EURUSD_M1','EURUSD',1)]):
+        _msg = 'TRACK_RATES'                                 
+        for i in _instruments:
+          _msg = _msg + ";{};{}".format(i[1], i[2])
+          
+        # Send via PUSH Socket
+        self.remote_send(self._PUSH_SOCKET, _msg)
+    
+    
+    ##########################################################################
     
     
     ##########################################################################
@@ -474,6 +514,20 @@ class DWX_ZeroMQ_Connector():
                             
                             try: 
                                 _data = eval(msg)
+
+                                if _data['_action'] == 'HIST':
+                                    _symbol = _data['_symbol']
+                                    if '_data' in _data.keys():
+                                        if _symbol not in self._History_DB.keys():
+                                            self._History_DB[_symbol] = {}
+                                        self._History_DB[_symbol] = _data['_data']
+                                    else:
+                                        print('No data found. MT4 often needs multiple requests when accessing data of symbols without open charts.')
+                                        print('message: ' + msg)
+                                
+                                # invokes data handlers on pull port
+                                for hnd in self._pulldata_handlers:
+                                    hnd.onPullData(_data)
                                 
                                 self._thread_data_output = _data
                                 if self._verbose:
@@ -501,19 +555,35 @@ class DWX_ZeroMQ_Connector():
                     msg = self._SUB_SOCKET.recv_string(zmq.DONTWAIT)
                     
                     if msg != "":
-                        _symbol, _data = msg.split(" ")
-                        _bid, _ask = _data.split(string_delimiter)
+
                         _timestamp = str(Timestamp.now('UTC'))[:-6]
+                        _symbol, _data = msg.split(" ")
+                        if len(_data.split(string_delimiter)) == 2:
+                            _bid, _ask = _data.split(string_delimiter)   
+                                                                   
                         
-                        if self._verbose:
-                            print("\n[" + _symbol + "] " + _timestamp + " (" + _bid + "/" + _ask + ") BID/ASK")
+                            if self._verbose:
+                                print("\n[" + _symbol + "] " + _timestamp + " (" + _bid + "/" + _ask + ") BID/ASK")                    
                     
-                        # Update Market Data DB
-                        if _symbol not in self._Market_Data_DB.keys():
-                            self._Market_Data_DB[_symbol] = {}
+                            # Update Market Data DB
+                            if _symbol not in self._Market_Data_DB.keys():
+                                self._Market_Data_DB[_symbol] = {}
                             
-                        self._Market_Data_DB[_symbol][_timestamp] = (float(_bid), float(_ask))
-                    
+                            self._Market_Data_DB[_symbol][_timestamp] = (float(_bid), float(_ask))
+
+                        elif len(_data.split(string_delimiter)) == 8:
+                            _time, _open, _high, _low, _close, _tick_vol, _spread, _real_vol = _data.split(string_delimiter)
+                            if self._verbose:
+                                print("\n[" + _symbol + "] " + _timestamp + " (" + _time + "/" + _open + "/" + _high + "/" + _low + "/" + _close + "/" + _tick_vol + "/" + _spread + "/" + _real_vol + ") TIME/OPEN/HIGH/LOW/CLOSE/TICKVOL/SPREAD/VOLUME")                    
+                            # Update Market Rate DB
+                            if _symbol not in self._Market_Data_DB.keys():
+                                self._Market_Data_DB[_symbol] = {}
+                            self._Market_Data_DB[_symbol][_timestamp] = (int(_time), float(_open), float(_high), float(_low), float(_close), int(_tick_vol), int(_spread), int(_real_vol))
+
+                        # invokes data handlers on sub port
+                        for hnd in self._subdata_handlers:
+                            hnd.onSubData(msg)
+
                 except zmq.error.Again:
                     pass # resource temporarily unavailable, nothing to print
                 except ValueError:
@@ -530,8 +600,7 @@ class DWX_ZeroMQ_Connector():
     """
     def _DWX_MTX_SUBSCRIBE_MARKETDATA_(self, 
                                        _symbol='EURUSD', 
-                                       string_delimiter=';',
-                                       poll_timeout=1000):
+                                       string_delimiter=';'):
         
         # Subscribe to SYMBOL first.
         self._SUB_SOCKET.setsockopt_string(zmq.SUBSCRIBE, _symbol)

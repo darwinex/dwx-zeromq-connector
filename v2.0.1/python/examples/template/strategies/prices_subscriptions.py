@@ -112,7 +112,7 @@ class prices_subscriptions(DWX_ZMQ_Strategy):
         Callback to process new data received through the PULL port
         """        
         # print responses to request commands
-        print('\rResponse from ExpertAdvisor={}'.format(data), end='', flush=True)
+        print('Response from ExpertAdvisor={}'.format(data))
         
     ##########################################################################    
     def onSubData(self, data):        
@@ -121,7 +121,7 @@ class prices_subscriptions(DWX_ZMQ_Strategy):
         """
         # split msg to get topic and message
         _topic, _msg = data.split(" ")
-        print('\rData on Topic={} with Message={}'.format(_topic, _msg), end='', flush=True)
+        print('Data on Topic={} with Message={}'.format(_topic, _msg))
 
         # increment counters
         if _topic == 'EURUSD':
@@ -165,7 +165,7 @@ class prices_subscriptions(DWX_ZMQ_Strategy):
         # Acquire lock
         self._lock.acquire()
         self._zmq._DWX_MTX_UNSUBSCRIBE_ALL_MARKETDATA_REQUESTS_()
-        print('\rUnsubscribing from all topics', end='', flush=True)
+        print('Unsubscribing from all topics')
           
       finally:
         # Release lock
@@ -176,10 +176,10 @@ class prices_subscriptions(DWX_ZMQ_Strategy):
         # Acquire lock
         self._lock.acquire()
         self._zmq._DWX_MTX_SEND_TRACKPRICES_REQUEST_([])        
-        print('\rRemoving symbols list', end='', flush=True)
+        print('Removing symbols list')
         sleep(self._delay)
         self._zmq._DWX_MTX_SEND_TRACKRATES_REQUEST_([])
-        print('\rRemoving instruments list', end='', flush=True)
+        print('Removing instruments list')
 
       finally:
         # Release lock
@@ -202,8 +202,8 @@ class prices_subscriptions(DWX_ZMQ_Strategy):
           try:
             # Acquire lock
             self._lock.acquire()
-            self._zmq._DWX_MTX_SUBSCRIBE_MARKETDATA_(_symbol, _string_delimiter=';')
-            print('\rSubscribed to {} price feed'.format(_symbol), end='', flush=True)
+            self._zmq._DWX_MTX_SUBSCRIBE_MARKETDATA_(_symbol)
+            print('Subscribed to {} price feed'.format(_symbol))
               
           finally:
             # Release lock
@@ -215,7 +215,7 @@ class prices_subscriptions(DWX_ZMQ_Strategy):
           # Acquire lock
           self._lock.acquire()
           self._zmq._DWX_MTX_SEND_TRACKPRICES_REQUEST_(self._symbols)
-          print('\rConfiguring price feed for {} symbols'.format(len(self._symbols)), end='', flush=True)
+          print('Configuring price feed for {} symbols'.format(len(self._symbols)))
             
         finally:
           # Release lock
@@ -232,15 +232,15 @@ class prices_subscriptions(DWX_ZMQ_Strategy):
 if __name__ == "__main__":
   
   # creates object with a predefined configuration: symbol list including EURUSD and GDAXI
-  print('\rLoading example...', end='', flush=True)
+  print('Loading example...')
   example = prices_subscriptions()  
 
   # Starts example execution
-  print('\Running example...', end='', flush=True)  
+  print('unning example...')  
   example.run()
 
   # Waits example termination
-  print('\rWaiting example termination...', end='', flush=True)
+  print('Waiting example termination...')
   while not example.isFinished():
     sleep(1)
-  print('\rBye!!!', end='', flush=True)
+  print('Bye!!!')
