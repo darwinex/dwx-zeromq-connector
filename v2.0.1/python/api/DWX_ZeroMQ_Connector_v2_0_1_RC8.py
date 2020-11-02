@@ -514,8 +514,7 @@ class DWX_ZeroMQ_Connector():
                             
                             try: 
                                 _data = eval(msg)
-
-                                if _data['_action'] == 'HIST':
+                                if '_action' in _data and _data['_action'] == 'HIST':
                                     _symbol = _data['_symbol']
                                     if '_data' in _data.keys():
                                         if _symbol not in self._History_DB.keys():

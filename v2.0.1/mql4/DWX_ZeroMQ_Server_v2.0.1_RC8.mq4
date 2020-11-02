@@ -452,8 +452,8 @@ void InterpretZmqMessage(Socket &pSocket, string &compArray[]) {
       
             zmq_ret = "{";
             
-            ans = DWX_ClosePartial(StrToDouble(compArray[8]), zmq_ret, StrToInteger(compArray[10]));
-               
+            ans = DWX_ClosePartial(StrToDouble(compArray[8]), zmq_ret, StrToInteger(compArray[10]), true);
+
             InformPullClient(pSocket, zmq_ret + "}");
             
             break;
@@ -914,7 +914,7 @@ bool DWX_CloseAtMarket(double size, string &zmq_ret) {
 
 //+------------------------------------------------------------------+
 // CLOSE PARTIAL SIZE
-bool DWX_ClosePartial(double size, string &zmq_ret, int ticket = 0) {
+bool DWX_ClosePartial(double size, string &zmq_ret, int ticket=0, bool externCall=false) {
 
    if(OrderType() != OP_BUY && OrderType() != OP_SELL) {
       return(true);
@@ -924,14 +924,14 @@ bool DWX_ClosePartial(double size, string &zmq_ret, int ticket = 0) {
    bool close_ret = False;
    
    // If the function is called directly, setup init() JSON here and get OrderSelect.
-   if(ticket != 0) {
+   if(ticket != 0 || externCall) {
       zmq_ret = zmq_ret + "'_action': 'CLOSE', '_ticket': " + IntegerToString(ticket);
       
       if (OrderSelect(ticket, SELECT_BY_TICKET)) {
          zmq_ret = zmq_ret + ", '_response': 'CLOSE_PARTIAL'";
       } else {
          zmq_ret = zmq_ret + ", '_response': 'CLOSE_PARTIAL_FAILED'";
-         return false;
+         return(false);
       }
    }
    
