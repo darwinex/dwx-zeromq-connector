@@ -122,7 +122,8 @@ _www.darwinex.com_
 1. Switch to the EA's Inputs tab and customize values as necessary:
 
     ![EA Inputs](resources/images/expert-inputs.png)
-1. Note: The variable **Publish_MarketData** was removed in recent versions. There is no need modify this variable or to manually change the **Publish_Symbols** array. Symbols will automatically be added when you call the `_DWX_MTX_SEND_TRACKRATES_REQUEST_()` function from python (see code example below). 
+1. Note: The variable **Publish_MarketData** was removed in recent versions. There is no need to modify this variable or to manually change the **Publish_Symbols** array. Symbols will automatically be added when the `_DWX_MTX_SEND_TRACKPRICES_REQUEST_()` function is called in python (see code example below). 
+
 
 	![MetaTrader Publishing Tick Data 1](resources/images/ZeroMQ_Server_Publishing_Symbol_Data.gif)
 	
