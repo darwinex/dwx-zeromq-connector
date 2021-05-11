@@ -120,24 +120,54 @@ _www.darwinex.com_
 ## Configuration
 
 1. After completing the steps above, terminate and restart MetaTrader 4.
-1. Open any new chart, e.g. EUR/USD M, then drag and drop **DWX_ZeroMQ_Server_vX.Y.Z_RCx**.
+1. Open any new chart, e.g. EUR/USD M, then drag and drop **DWX_ZeroMQ_Server_v2.0.1_RC8**.
 1. Switch to the EA's Inputs tab and customize values as necessary:
 
     ![EA Inputs](resources/images/expert-inputs.png)
-1. Note: Setting **Publish_MarketData** to **True** will cause MetaTrader 4 to begin publishing BID/ASK tick data in real-time for all symbols specified in the array **Publish_Symbols** contained in the .mq4 script. 
-1. Simply modify the Publish_Symbols[] aarray's contents to add/remove required symbols as necessary and re-compile. 
-1. The default list of symbols is:
+1. Note: The variable **Publish_MarketData** was removed in recent versions. There is no need modify this variable or to manually change the **Publish_Symbols** array. Symbols will automatically be added when you call the `_DWX_MTX_SEND_TRACKRATES_REQUEST_()` function from python. 
 
-	```
-	string Publish_Symbols[7] = {
-	   "EURUSD","GBPUSD","USDJPY","USDCAD","AUDUSD","NZDUSD","USDCHF"
-	};
-	```
 	![MetaTrader Publishing Tick Data 1](resources/images/ZeroMQ_Server_Publishing_Symbol_Data.gif)
 	
 	![MetaTrader Publishing Tick Data 2](resources/images/InAction_ZeroMQ_Server_Publishing_Symbol_Data.gif)
 
 ## Example Usage
+
+### Subscribe/Unsubscribe to/from EUR/USD bid/ask prices in real-time:
+```
+# subscribe to data:
+_zmq._DWX_MTX_SUBSCRIBE_MARKETDATA_('EURUSD')
+# tell MT4 to publish data:
+_zmq._DWX_MTX_SEND_TRACKPRICES_REQUEST_(['EURUSD'])
+
+Output:
+[KERNEL] Subscribed to EURUSD BID/ASK updates. See self._Market_Data_DB.
+
+# BID/ASK prices are now being streamed into _zmq._Market_Data_DB.
+_zmq._Market_Data_DB
+
+Output: 
+{'EURUSD': {
+  '2019-01-08 13:46:49.157431': (1.14389, 1.14392),
+  '2019-01-08 13:46:50.673151': (1.14389, 1.14393),
+  '2019-01-08 13:46:51.010993': (1.14392, 1.14395),
+  '2019-01-08 13:46:51.100941': (1.14394, 1.14398),
+  '2019-01-08 13:46:51.205881': (1.14395, 1.14398),
+  '2019-01-08 13:46:52.283107': (1.14394, 1.14397),
+  '2019-01-08 13:46:52.377055': (1.14395, 1.14398),
+  '2019-01-08 13:46:52.777823': (1.14394, 1.14398),
+  '2019-01-08 13:46:52.870773': (1.14395, 1.14398),
+  '2019-01-08 13:46:52.985708': (1.14395, 1.14397),
+  '2019-01-08 13:46:53.080652': (1.14393, 1.14397),
+  '2019-01-08 13:46:53.196584': (1.14394, 1.14398),
+  '2019-01-08 13:46:53.294541': (1.14393, 1.14397)}}
+
+_zmq._DWX_MTX_UNSUBSCRIBE_MARKETDATA('EURUSD')
+
+Output:
+**
+[KERNEL] Unsubscribing from EURUSD
+**
+```
 
 ### Initialize Connector:
 ```
@@ -325,40 +355,6 @@ _zmq._DWX_MTX_CLOSE_ALL_TRADES_()
    '_close_lots': 0.01,
    '_response': 'CLOSE_MARKET'}},
  '_response_value': 'SUCCESS'}
-```
-
-### Subscribe/Unsubscribe to/from EUR/USD bid/ask prices in real-time:
-```
-_zmq._DWX_MTX_SUBSCRIBE_MARKETDATA_('EURUSD')
-
-Output:
-[KERNEL] Subscribed to EURUSD BID/ASK updates. See self._Market_Data_DB.
-
-# BID/ASK prices are now being streamed into _zmq._Market_Data_DB.
-_zmq._Market_Data_DB
-
-Output: 
-{'EURUSD': {
-  '2019-01-08 13:46:49.157431': (1.14389, 1.14392),
-  '2019-01-08 13:46:50.673151': (1.14389, 1.14393),
-  '2019-01-08 13:46:51.010993': (1.14392, 1.14395),
-  '2019-01-08 13:46:51.100941': (1.14394, 1.14398),
-  '2019-01-08 13:46:51.205881': (1.14395, 1.14398),
-  '2019-01-08 13:46:52.283107': (1.14394, 1.14397),
-  '2019-01-08 13:46:52.377055': (1.14395, 1.14398),
-  '2019-01-08 13:46:52.777823': (1.14394, 1.14398),
-  '2019-01-08 13:46:52.870773': (1.14395, 1.14398),
-  '2019-01-08 13:46:52.985708': (1.14395, 1.14397),
-  '2019-01-08 13:46:53.080652': (1.14393, 1.14397),
-  '2019-01-08 13:46:53.196584': (1.14394, 1.14398),
-  '2019-01-08 13:46:53.294541': (1.14393, 1.14397)}}
-
-_zmq._DWX_MTX_UNSUBSCRIBE_MARKETDATA('EURUSD')
-
-Output:
-**
-[KERNEL] Unsubscribing from EURUSD
-**
 ```
 
 ## Video Tutorials
