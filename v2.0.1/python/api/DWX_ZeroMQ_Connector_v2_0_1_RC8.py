@@ -425,7 +425,7 @@ class DWX_ZeroMQ_Connector():
     MetaTrader for OHLC
     """
     def _DWX_MTX_SEND_TRACKRATES_REQUEST_(self,
-                                 _instruments=[('EURUSD_M1','EURUSD',1)]):
+                                 _instruments=[('EURUSD_M1', 'EURUSD',1)]):
         _msg = 'TRACK_RATES'                                 
         for i in _instruments:
           _msg = _msg + ";{};{}".format(i[1], i[2])
@@ -598,8 +598,7 @@ class DWX_ZeroMQ_Connector():
     Function to subscribe to given Symbol's BID/ASK feed from MetaTrader
     """
     def _DWX_MTX_SUBSCRIBE_MARKETDATA_(self, 
-                                       _symbol='EURUSD', 
-                                       string_delimiter=';'):
+                                       _symbol='EURUSD'):
         
         # Subscribe to SYMBOL first.
         self._SUB_SOCKET.setsockopt_string(zmq.SUBSCRIBE, _symbol)

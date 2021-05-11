@@ -224,7 +224,7 @@ void OnTick() {
             // if last rate is returned and its timestamp is greater than the last published...
             if(count > 0 && curr_rate[0].time > Publish_Instruments[s].getLastPublishTimestamp()) {
                 // then send a new pub message with this new rate
-                string _rates = StringFormat("%u;%f;%f;%f;%f;%d;%d;%d",
+                string _rates = StringFormat("%u;%f;%f;%f;%f;%d;%d;%d", 
                                     curr_rate[0].time,
                                     curr_rate[0].open, 
                                     curr_rate[0].high, 
@@ -232,7 +232,7 @@ void OnTick() {
                                     curr_rate[0].close, 
                                     curr_rate[0].tick_volume, 
                                     curr_rate[0].spread, 
-                                    curr_rate[0].real_volume);        
+                                    curr_rate[0].real_volume);
                 ZmqMsg reply(StringFormat("%s %s", Publish_Instruments[s].name(), _rates));
                 Print("Sending Rates @"+TimeToStr(curr_rate[0].time) + " [" + reply.getData() + "] to PUB Socket");
                 if(!pubSocket.send(reply, true)) {
@@ -243,7 +243,7 @@ void OnTick() {
                 
           }
         }
-      }
+     }
    }
 }
 
@@ -697,7 +697,7 @@ void DWX_SetInstrumentList(string& compArray[], string& zmq_ret) {
    
    zmq_ret = zmq_ret + "'_action': 'TRACK_RATES'";
    
-   printArray(compArray);
+   // printArray(compArray);
    
    // Format: TRACK_RATES|SYMBOL_1|TIMEFRAME_1|SYMBOL_2|TIMEFRAME_2|...|SYMBOL_N|TIMEFRAME_N
    string result = "Tracking RATES from";
@@ -796,11 +796,8 @@ int DWX_OpenOrder(string _symbol, int _type, double _lots, double _price, double
       tp = NormalizeDouble(_price+_TP*dir_flag*vpoint, vdigits);
    }
    
-   if(_symbol == "NULL") {
-      ticket = OrderSend(Symbol(), _type, _lots, _price, MaximumSlippage, sl, tp, _comment, _magic);
-   } else {
-      ticket = OrderSend(_symbol, _type, _lots, _price, MaximumSlippage, sl, tp, _comment, _magic);
-   }
+   if(_symbol == "NULL") _symbol = Symbol();
+   ticket = OrderSend(_symbol, _type, _lots, _price, MaximumSlippage, sl, tp, _comment, _magic);
    if(ticket < 0) {
       // Failure
       error = GetLastError();
@@ -810,7 +807,7 @@ int DWX_OpenOrder(string _symbol, int _type, double _lots, double _price, double
 
    int tmpRet = OrderSelect(ticket, SELECT_BY_TICKET, MODE_TRADES);
    
-   zmq_ret = zmq_ret + ", " + "'_magic': " + IntegerToString(_magic) + ", '_ticket': " + IntegerToString(OrderTicket()) + ", '_open_time': '" + TimeToStr(OrderOpenTime(),TIME_DATE|TIME_SECONDS) + "', '_open_price': " + DoubleToString(OrderOpenPrice());
+   zmq_ret = zmq_ret + ", '_symbol': '" + _symbol + "', '_magic': " + IntegerToString(_magic) + ", '_ticket': " + IntegerToString(OrderTicket()) + ", '_open_time': '" + TimeToStr(OrderOpenTime(),TIME_DATE|TIME_SECONDS) + "', '_open_price': " + DoubleToString(OrderOpenPrice());
 
    if(DMA_MODE) {
    
