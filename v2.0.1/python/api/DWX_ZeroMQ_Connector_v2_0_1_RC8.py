@@ -101,6 +101,8 @@ class DWX_ZeroMQ_Connector():
         # Start listening for responses to commands and new market data
         self._string_delimiter = _delimiter
         
+        self._main_string_delimiter = ':|:'
+        
         # BID/ASK Market Data Subscription Threads ({SYMBOL: Thread})
         self._MarketData_Thread = None
         
@@ -556,7 +558,7 @@ class DWX_ZeroMQ_Connector():
                     if msg != "":
 
                         _timestamp = str(Timestamp.now('UTC'))[:-6]
-                        _symbol, _data = msg.split(" ")
+                        _symbol, _data = msg.split(self._main_string_delimiter)
                         if len(_data.split(string_delimiter)) == 2:
                             _bid, _ask = _data.split(string_delimiter)   
                                                                    

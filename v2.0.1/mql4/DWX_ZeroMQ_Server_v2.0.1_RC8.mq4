@@ -41,6 +41,7 @@ extern bool DMA_MODE = true;
 bool Publish_MarketData  = false;
 bool Publish_MarketRates = false;
 
+string main_string_delimiter = ":|:";
 long lastUpdateMillis = GetTickCount();
                                                                  
   
@@ -208,7 +209,7 @@ void OnTick() {
           if (StringCompare(Publish_Symbols_LastTick[s], _tick) == 0) continue;
           Publish_Symbols_LastTick[s] = _tick;
           // publish: topic=symbol msg=tick_data
-          ZmqMsg reply(StringFormat("%s %s", Publish_Symbols[s], _tick));
+          ZmqMsg reply(StringFormat("%s%s%s", Publish_Symbols[s], main_string_delimiter, _tick));
           Print("Sending PRICE [" + reply.getData() + "] to PUB Socket");
           if(!pubSocket.send(reply, true)) {
             Print("###ERROR### Sending price");
@@ -233,7 +234,7 @@ void OnTick() {
                                     curr_rate[0].tick_volume, 
                                     curr_rate[0].spread, 
                                     curr_rate[0].real_volume);
-                ZmqMsg reply(StringFormat("%s %s", Publish_Instruments[s].name(), _rates));
+                ZmqMsg reply(StringFormat("%s%s%s", Publish_Instruments[s].name(), main_string_delimiter, _rates));
                 Print("Sending Rates @"+TimeToStr(curr_rate[0].time) + " [" + reply.getData() + "] to PUB Socket");
                 if(!pubSocket.send(reply, true)) {
                     Print("###ERROR### Sending rate");            
