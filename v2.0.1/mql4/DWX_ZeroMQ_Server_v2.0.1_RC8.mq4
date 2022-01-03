@@ -398,6 +398,8 @@ void InterpretZmqMessage(Socket &pSocket, string &compArray[]) {
       switch_action = 9;
    if(compArray[0] == "TRACK_RATES")
       switch_action = 10;
+   if (compArray[0] == "TRADE" && compArray[1] == "GET_ACCOUNT_INFO")
+      switch_action = 11;
    
    // IMPORTANT: when adding new functions, also increase the max switch_action in CheckOpsStatus()!
    
@@ -518,6 +520,16 @@ void InterpretZmqMessage(Socket &pSocket, string &compArray[]) {
             InformPullClient(pSocket, zmq_ret + "}");
             
             break;
+
+         case 11: // GET ACCOUNT INFORMATION
+
+            zmq_ret = "{";
+
+            DWX_GetAccountInformation(compArray, zmq_ret);
+
+            InformPullClient(pSocket, zmq_ret + "}");
+
+            break;
         
          // if a case is added, also change max switch_action in CheckOpsStatus()!
             
@@ -530,7 +542,7 @@ void InterpretZmqMessage(Socket &pSocket, string &compArray[]) {
 // Check if operations are permitted
 bool CheckOpsStatus(Socket &pSocket, int switch_action) {
 
-   if (switch_action >= 1 && switch_action <= 10) {
+   if (switch_action >= 1 && switch_action <= 11) {
    
       if (!IsTradeAllowed()) {
          InformPullClient(pSocket, "{'_response': 'TRADING_IS_NOT_ALLOWED__ABORTED_COMMAND'}");
@@ -729,7 +741,22 @@ void DWX_SetInstrumentList(string& compArray[], string& zmq_ret) {
    Print(result);
 }
 
+//+------------------------------------------------------------------+
+// Get Current Account Information
+void DWX_GetAccountInformation(string& compArray[], string& zmq_ret){
+   zmq_ret += "'_action': 'GET_ACCOUNT_INFORMATION', '_data': {";
+   zmq_ret += "'currenttime': '" + TimeToString(TimeCurrent()) + "'";
+   zmq_ret += ", 'accountname':'" + string(AccountName()) + "'";
+   zmq_ret += ", 'accountnumber':" + IntegerToString(AccountNumber()); 
+   zmq_ret += ", 'accountprofit':" + DoubleToString(AccountProfit());
+   zmq_ret += ", 'accountbalance':" + DoubleToString(AccountBalance());
+   zmq_ret += ", 'accountequity':" + DoubleToString(AccountEquity());
+   zmq_ret += ", 'accountfreemargin':" + DoubleToString(AccountFreeMargin());
+   zmq_ret += ", 'accountleverage' :" + IntegerToString(AccountLeverage());
+   zmq_ret += "}";
 
+   // Additional information available at: https://docs.mql4.com/account
+}
 //+------------------------------------------------------------------+
 // Get Timeframe from text
 string GetTimeframeText(ENUM_TIMEFRAMES tf) {

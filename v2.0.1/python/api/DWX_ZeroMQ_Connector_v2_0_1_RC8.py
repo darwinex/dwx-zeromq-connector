@@ -693,6 +693,19 @@ class DWX_ZeroMQ_Connector():
         self.remote_send(self._PUSH_SOCKET, "HEARTBEAT;")
         
     ##########################################################################
+    ##########################################################################
+
+    # GET ACCOUNT INFORMATION
+    def _DWX_MTX_GET_ACCOUNT_INFO_(self):
+
+        try:
+            self.temp_order_dict['_action'] = 'GET_ACCOUNT_INFO'
+
+            # Execute
+            self._DWX_MTX_SEND_COMMAND_(**self.temp_order_dict)
+
+        except KeyError:
+            pass
 
 ##############################################################################
 
