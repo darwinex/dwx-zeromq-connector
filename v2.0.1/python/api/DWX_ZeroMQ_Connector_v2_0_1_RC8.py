@@ -704,8 +704,10 @@ class DWX_ZeroMQ_Connector():
             # Execute
             self._DWX_MTX_SEND_COMMAND_(**self.temp_order_dict)
 
-        except KeyError:
-            pass
+        except Exception as ex:
+            _exstr = "Exception Type {0}. Args:\n{1!r}"
+            _msg = _exstr.format(type(ex).__name__, ex.args)
+            print(_msg)
 
 ##############################################################################
 
