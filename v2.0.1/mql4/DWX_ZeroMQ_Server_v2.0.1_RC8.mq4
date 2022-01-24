@@ -744,16 +744,16 @@ void DWX_SetInstrumentList(string& compArray[], string& zmq_ret) {
 //+------------------------------------------------------------------+
 // Get Current Account Information
 void DWX_GetAccountInformation(string& compArray[], string& zmq_ret){
-   zmq_ret += "'_action': 'GET_ACCOUNT_INFORMATION', '_data': {";
+   zmq_ret += "'_action': 'GET_ACCOUNT_INFORMATION', 'account_number':" +IntegerToString(AccountNumber());
+   zmq_ret += ", '_data': [{";
    zmq_ret += "'currenttime': '" + TimeToString(TimeCurrent()) + "'";
-   zmq_ret += ", 'accountname':'" + string(AccountName()) + "'";
-   zmq_ret += ", 'accountnumber':" + IntegerToString(AccountNumber()); 
-   zmq_ret += ", 'accountprofit':" + DoubleToString(AccountProfit());
-   zmq_ret += ", 'accountbalance':" + DoubleToString(AccountBalance());
-   zmq_ret += ", 'accountequity':" + DoubleToString(AccountEquity());
-   zmq_ret += ", 'accountfreemargin':" + DoubleToString(AccountFreeMargin());
-   zmq_ret += ", 'accountleverage' :" + IntegerToString(AccountLeverage());
-   zmq_ret += "}";
+   zmq_ret += ", 'account_name':'" + string(AccountName()) + "'";
+   zmq_ret += ", 'account_balance':" + DoubleToString(AccountBalance());
+   zmq_ret += ", 'account_equity':" + DoubleToString(AccountEquity());
+   zmq_ret += ", 'account_profit':" + DoubleToString(AccountProfit());
+   zmq_ret += ", 'account_free_margin':" + DoubleToString(AccountFreeMargin());
+   zmq_ret += ", 'account_leverage' :" + IntegerToString(AccountLeverage());
+   zmq_ret += "}]";
 
    // Additional information available at: https://docs.mql4.com/account
 }
