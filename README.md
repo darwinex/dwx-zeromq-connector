@@ -1,7 +1,7 @@
 # Important Update (15 Feb 2022):
 DWX ZeroMQ Connector will be soon be archived (available to use, but not actively maintained). 
 
-We encourage both new and existing users to please visit its successor [DWX Connect](https://github.com/dwxconnect/), that alongside removing the ZeroMQ dependency, also brings with it native support for both MetaTrader 4 and 5 without any 3rd-party dependencies 🙌
+We encourage both new and existing users to please visit its successor [DWX Connect](https://github.com/darwinex/dwxconnect/), that alongside removing the ZeroMQ dependency, also brings with it native support for both MetaTrader 4 and 5 without any 3rd-party dependencies 🙌
 
 Many thanks!
 
