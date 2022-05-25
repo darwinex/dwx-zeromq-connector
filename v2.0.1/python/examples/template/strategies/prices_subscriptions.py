@@ -43,27 +43,26 @@
 
 
 #############################################################################
-# DWX-ZMQ required imports 
+# DWX-ZMQ required imports
 #############################################################################
 
 
 # Append path for main project folder
+import random
+from time import sleep
+from threading import Thread, Lock
+from pandas import Timedelta, to_datetime
+import os
+from examples.template.strategies.base.DWX_ZMQ_Strategy import DWX_ZMQ_Strategy
 import sys
 sys.path.append('../../..')
 
 # Import ZMQ-Strategy from relative path
-from examples.template.strategies.base.DWX_ZMQ_Strategy import DWX_ZMQ_Strategy
 
 
 #############################################################################
 # Other required imports
 #############################################################################
-
-import os
-from pandas import Timedelta, to_datetime
-from threading import Thread, Lock
-from time import sleep
-import random
 
 
 #############################################################################
@@ -71,23 +70,25 @@ import random
 #############################################################################
 
 class prices_subscriptions(DWX_ZMQ_Strategy):
-    
-    def __init__(self, 
+
+    def __init__(self,
                  _name="PRICES_SUBSCRIPTIONS",
-                 _symbols=['EURUSD','GDAXI'],
+                 _symbols=['EURUSD', 'GDAXI'],
                  _delay=0.1,
                  _broker_gmt=3,
                  _verbose=False):
-        
+
         # call DWX_ZMQ_Strategy constructor and passes itself as data processor for handling
-        # received data on PULL and SUB ports 
+        # received data on PULL and SUB ports
         super().__init__(_name,
                          _symbols,
                          _broker_gmt,
-                         [self],      # Registers itself as handler of pull data via self.onPullData()
-                         [self],      # Registers itself as handler of sub data via self.onSubData()
+                         # Registers itself as handler of pull data via self.onPullData()
+                         [self],
+                         # Registers itself as handler of sub data via self.onSubData()
+                         [self],
                          _verbose)
-        
+
         # This strategy's variables
         self._symbols = _symbols
         self._delay = _delay
@@ -96,131 +97,132 @@ class prices_subscriptions(DWX_ZMQ_Strategy):
 
         # Initializes counters of number of prices received from each symbol
         self._eurusd_cnt = 0
-        self._gdaxi_cnt  = 0
-        
+        self._gdaxi_cnt = 0
+
         # lock for acquire/release of ZeroMQ connector
         self._lock = Lock()
-        
-    ##########################################################################    
-    def isFinished(self):        
+
+    ##########################################################################
+    def isFinished(self):
         """ Check if execution finished"""
         return self._finished
-        
-    ##########################################################################    
-    def onPullData(self, data):        
+
+    ##########################################################################
+    def onPullData(self, data):
         """
         Callback to process new data received through the PULL port
-        """        
+        """
         # print responses to request commands
         print('Response from ExpertAdvisor={}'.format(data))
-        
-    ##########################################################################    
-    def onSubData(self, data):        
+
+    ##########################################################################
+    def onSubData(self, data):
         """
         Callback to process new data received through the SUB port
         """
         # split msg to get topic and message
-        _topic, _msg = data.split(" ")
+        _topic, _msg = data.split(":|:")
         print('Data on Topic={} with Message={}'.format(_topic, _msg))
 
         # increment counters
         if _topic == 'EURUSD':
-          self._eurusd_cnt += 1
+            self._eurusd_cnt += 1
         if _topic == 'GDAXI':
-          self._gdaxi_cnt += 1
+            self._gdaxi_cnt += 1
 
         # check if received at least 10 prices from each and then cancel GDAXI feed
         if self._eurusd_cnt >= 10 and self._gdaxi_cnt >= 10:
-          # updates the symbol list and request the update to the Expert Advisor
-          self._symbols = ['EURUSD']
-          self.__subscribe_to_price_feeds()
-          # resets counters
-          self._eurusd_cnt = 0
-          self._gdaxi_cnt = 0
+            # updates the symbol list and request the update to the Expert Advisor
+            self._symbols = ['EURUSD']
+            self.__subscribe_to_price_feeds()
+            # resets counters
+            self._eurusd_cnt = 0
+            self._gdaxi_cnt = 0
 
         # check if received 10 more prices from EURUSD with GDAXI disabled
         if self._eurusd_cnt >= 10 and len(self._symbols) == 1:
-          # finishes (removes all subscriptions)  
-          self.stop()
-        
-        
-    ##########################################################################    
-    def run(self):        
+            # finishes (removes all subscriptions)
+            self.stop()
+
+    ##########################################################################
+
+    def run(self):
         """
         Starts price subscriptions
-        """        
+        """
         self._finished = False
 
         # Subscribe to all symbols in self._symbols to receive bid,ask prices
         self.__subscribe_to_price_feeds()
 
-    ##########################################################################    
-    def stop(self):
-      """
-      unsubscribe from all market symbols and exits
-      """
-        
-      # remove subscriptions and stop symbols price feeding
-      try:
-        # Acquire lock
-        self._lock.acquire()
-        self._zmq._DWX_MTX_UNSUBSCRIBE_ALL_MARKETDATA_REQUESTS_()
-        print('Unsubscribing from all topics')
-          
-      finally:
-        # Release lock
-        self._lock.release()
-        sleep(self._delay)
-      
-      try:
-        # Acquire lock
-        self._lock.acquire()
-        self._zmq._DWX_MTX_SEND_TRACKPRICES_REQUEST_([])        
-        print('Removing symbols list')
-        sleep(self._delay)
-        self._zmq._DWX_MTX_SEND_TRACKRATES_REQUEST_([])
-        print('Removing instruments list')
-
-      finally:
-        # Release lock
-        self._lock.release()
-        sleep(self._delay)
-
-      self._finished = True
-
-
     ##########################################################################
-    def __subscribe_to_price_feeds(self):
-      """
-      Starts the subscription to the self._symbols list setup during construction.
-      1) Setup symbols in Expert Advisor through self._zmq._DWX_MTX_SUBSCRIBE_MARKETDATA_
-      2) Starts price feeding through self._zmq._DWX_MTX_SEND_TRACKPRICES_REQUEST_
-      """
-      if len(self._symbols) > 0:
-        # subscribe to all symbols price feeds
-        for _symbol in self._symbols:
-          try:
+    def stop(self):
+        """
+        unsubscribe from all market symbols and exits
+        """
+
+        # remove subscriptions and stop symbols price feeding
+        try:
             # Acquire lock
             self._lock.acquire()
-            self._zmq._DWX_MTX_SUBSCRIBE_MARKETDATA_(_symbol)
-            print('Subscribed to {} price feed'.format(_symbol))
-              
-          finally:
+            self._zmq._DWX_MTX_UNSUBSCRIBE_ALL_MARKETDATA_REQUESTS_()
+            print('Unsubscribing from all topics')
+
+        finally:
             # Release lock
-            self._lock.release()        
+            self._lock.release()
             sleep(self._delay)
 
-        # configure symbols to receive price feeds        
         try:
-          # Acquire lock
-          self._lock.acquire()
-          self._zmq._DWX_MTX_SEND_TRACKPRICES_REQUEST_(self._symbols)
-          print('Configuring price feed for {} symbols'.format(len(self._symbols)))
-            
+            # Acquire lock
+            self._lock.acquire()
+            self._zmq._DWX_MTX_SEND_TRACKPRICES_REQUEST_([])
+            print('Removing symbols list')
+            sleep(self._delay)
+            self._zmq._DWX_MTX_SEND_TRACKRATES_REQUEST_([])
+            print('Removing instruments list')
+
         finally:
-          # Release lock
-          self._lock.release()
-          sleep(self._delay)      
+            # Release lock
+            self._lock.release()
+            sleep(self._delay)
+
+        self._finished = True
+
+    ##########################################################################
+
+    def __subscribe_to_price_feeds(self):
+        """
+        Starts the subscription to the self._symbols list setup during construction.
+        1) Setup symbols in Expert Advisor through self._zmq._DWX_MTX_SUBSCRIBE_MARKETDATA_
+        2) Starts price feeding through self._zmq._DWX_MTX_SEND_TRACKPRICES_REQUEST_
+        """
+        if len(self._symbols) > 0:
+            # subscribe to all symbols price feeds
+            for _symbol in self._symbols:
+                try:
+                    # Acquire lock
+                    self._lock.acquire()
+                    self._zmq._DWX_MTX_SUBSCRIBE_MARKETDATA_(_symbol)
+                    print('Subscribed to {} price feed'.format(_symbol))
+
+                finally:
+                    # Release lock
+                    self._lock.release()
+                    sleep(self._delay)
+
+            # configure symbols to receive price feeds
+            try:
+                # Acquire lock
+                self._lock.acquire()
+                self._zmq._DWX_MTX_SEND_TRACKPRICES_REQUEST_(self._symbols)
+                print('Configuring price feed for {} symbols'.format(
+                    len(self._symbols)))
+
+            finally:
+                # Release lock
+                self._lock.release()
+                sleep(self._delay)
 
 
 """ -----------------------------------------------------------------------------------------------
@@ -230,17 +232,17 @@ class prices_subscriptions(DWX_ZMQ_Strategy):
     -----------------------------------------------------------------------------------------------
 """
 if __name__ == "__main__":
-  
-  # creates object with a predefined configuration: symbol list including EURUSD and GDAXI
-  print('Loading example...')
-  example = prices_subscriptions()  
 
-  # Starts example execution
-  print('unning example...')  
-  example.run()
+    # creates object with a predefined configuration: symbol list including EURUSD and GDAXI
+    print('Loading example...')
+    example = prices_subscriptions()
 
-  # Waits example termination
-  print('Waiting example termination...')
-  while not example.isFinished():
-    sleep(1)
-  print('Bye!!!')
+    # Starts example execution
+    print('unning example...')
+    example.run()
+
+    # Waits example termination
+    print('Waiting example termination...')
+    while not example.isFinished():
+        sleep(1)
+    print('Bye!!!')
